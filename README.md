@@ -61,7 +61,7 @@ scraper = LeakixScraper(api_key="Your_API_Key")
 
 **Methods:**
 
-- **execute(scope, query, pages, fields, separator)**
+- **execute(scope, query, pages, plugin, fields)**
 
     Conduct a search on leakix.net.
 
@@ -69,12 +69,13 @@ scraper = LeakixScraper(api_key="Your_API_Key")
     - `scope` (str): Type of information (e.g., "service" or "leak").
     - `query` (str): The query to be executed.
     - `pages` (int): Number of pages to fetch.
+    - `plugin` (str): Plugins to use (e.g., "PulseConnectPlugin, ")
     - `fields` (str): Fields to extract from the JSON, comma-separated (e.g., "event_source, host, ip, port").
 
     Example:
 
     ```python
-    results = scraper.execute(scope="leak", query='+country:"France"', pages=5, fields="event_source, host, ip, port", plugin="MobileIronCorePlugin")
+    results = scraper.execute(scope="leak", query='+country:"France"', pages=5, fields="event_source, host, ip, port", plugin="PulseConnectPlugin, SharePointPlugin")
     for result in results:
         print("Event Source:", result["event_source"])
         print("Host:", result["host"])
