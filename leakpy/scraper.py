@@ -166,7 +166,6 @@ class LeakixScraper:
             query_param += " +plugin:(" + ' '.join(plugin_queries) + ")"
 
         results = []
-        print(query_param)
         for page in range(pages):
             self.log(f"[bold green]\n[-] Query {page + 1} : \n")
             response = requests.get(
