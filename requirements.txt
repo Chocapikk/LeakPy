@@ -1,0 +1,4 @@
+beautifulsoup4==4.12.2
+requests==2.25.1
+rich==13.5.2
+setuptools==65.5.0
