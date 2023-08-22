@@ -25,8 +25,13 @@ class LeakixScraper:
         local_folder = join(user_folder, ".local")
         makedirs(local_folder) if not exists(local_folder) else None
         self.api_key_file = join(local_folder, ".api.txt")
-        self.api_key = api_key.strip() if api_key and len(api_key.strip()) == 48 else self.read_api_key()
+        self.api_key = api_key.strip() if api_key else self.read_api_key()
+        
+        if not self.api_key or len(self.api_key) != 48:
+            raise ValueError("A valid API key is required.")
+        
         self.verbose = verbose
+
 
     def log(self, *args, **kwargs):
         """
@@ -137,6 +142,22 @@ class LeakixScraper:
                 return {'url': f"{protocol}://{data['ip']}:{data['port']}"}
 
         return extracted_data
+
+    def list_fields(self):
+        """
+        Lists all possible fields from a sample JSON retrieved from the API.
+        This is a wrapper around the get_all_fields method to fetch and process a sample JSON.
+        """
+        self.verbose = not self.verbose
+        sample_data = self.query(scope="leak", pages=1, return_data_only=True)
+        self.verbose = not self.verbose
+        
+        if not sample_data or not isinstance(sample_data, list) or not sample_data:
+            self.console.print("[bold red]Failed to retrieve a sample JSON. Cannot list fields.")
+            return []
+
+        return self.get_all_fields(sample_data[0])
+
 
     def get_all_fields(self, data, current_path=None):
         """

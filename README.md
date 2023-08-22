@@ -24,25 +24,55 @@ Options:
 
 ```plaintext
 usage: leakpy [-h] [-s {service,leak}] [-p PAGES] [-q QUERY] [-P PLUGINS] [-o OUTPUT]
-              [-f FIELDS] [-r] [-lp] [-lf]
+              [-f FIELDS] [-i] [-r] [-lp] [-lf]
 
 options:
   -h, --help            show this help message and exit
   -s {service,leak}, --scope {service,leak}
-                        Specify the type of information you're looking for.
+                        Type Of Informations
   -p PAGES, --pages PAGES
-                        Specify the number of pages to retrieve.
+                        Number Of Pages
   -q QUERY, --query QUERY
-                        Specify your search query.
+                        Specify The Query
   -P PLUGINS, --plugins PLUGINS
-                        Specify the plugin(s) to use.
+                        Specify The Plugin(s)
   -o OUTPUT, --output OUTPUT
-                        Specify the output file path.
+                        Output File
   -f FIELDS, --fields FIELDS
-                        Fields to extract from the JSON data, comma-separated (e.g., 'protocol,ip,port').
-  -r, --reset-api       Reset the saved API key.
-  -lp, --list-plugins   List all available plugins.
+                        Fields to extract from the JSON, comma-separated. For example:
+                        'protocol,ip,port'
+  -i, --interactive     Activate interactive mode.
+  -r, --reset-api       Reset the saved API key
+  -lp, --list-plugins   List Available Plugins
   -lf, --list-fields    List all possible fields from a sample JSON.
+```
+
+### Interactive Mode:
+
+When using the `-i` or `--interactive` option, LeakPy enters an interactive mode, allowing users to input commands directly:
+
+```bash
+$ leakpy -i
+```
+
+Once inside the interactive mode, users are greeted with:
+
+```plaintext
+Welcome to LeakPy interactive mode!
+Type 'help' for available commands.
+```
+
+The available commands include:
+
+```plaintext
+Available Commands:
+exit           : Exit the interactive mode.
+help           : Display this help menu.
+set            : Set a particular setting. Usage: set <setting_name> <value>
+run            : Run the scraper with the current settings.
+list-fields    : List all possible fields from a sample JSON.
+list-plugins   : List available plugins.
+show           : Display current settings.
 ```
 
 ## 📘 Library Documentation
