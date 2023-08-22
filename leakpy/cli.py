@@ -19,6 +19,7 @@ def main():
         parser.add_argument("-f", "--fields", help="Fields to extract from the JSON, comma-separated. For example: 'protocol,ip,port'", type=str)
         parser.add_argument("-r", "--reset-api", action="store_true", help="Reset the saved API key")
         parser.add_argument("-lp", "--list-plugins", action="store_true", help="List Available Plugins")
+        parser.add_argument("-lf", "--list-fields", action="store_true", help="List all possible fields from a sample JSON")
        
         args = parser.parse_args()
 
@@ -32,10 +33,28 @@ def main():
         if args.list_plugins:
             plugins = scraper.get_plugins()
             console.print(f"[bold yellow][!] Plugins available : {len(plugins)}\n")
-            for plugin, access in plugins:
-                console.print(f"[bold cyan][+] {plugin} - {access}")
+            for plugin in plugins:
+                console.print(f"[bold cyan][+] {plugin}")
             sys.exit(0)    
+        
+        if args.list_fields:
+            scraper.verbose = not scraper.verbose
+            sample_data = scraper.query(args.scope, 1, args.query, args.plugins, None, return_data_only=True)
+            scraper.verbose = not scraper.verbose
             
+            if not sample_data or not isinstance(sample_data, list) or not sample_data[0]:
+                console.print("[bold red][X] Couldn't fetch valid sample data. (Please check your query, scope or plugins)")
+                sys.exit(1)
+
+            sample_dict = sample_data[0]
+            
+            fields = scraper.get_all_fields(sample_dict)
+            console.print(f"[bold yellow][!] Possible fields from sample JSON : {len(fields)}\n")
+            for field in fields:
+                console.print(f"[bold cyan][+] {field}")
+            sys.exit(0)
+
+        
         scraper.run(args.scope, args.pages, args.query, args.plugins, args.output, args.fields)    
         
     except Exception as e:

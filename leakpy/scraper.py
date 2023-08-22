@@ -4,9 +4,9 @@ import sys
 import json
 import time
 import requests
-from bs4 import BeautifulSoup
-from rich.console import Console
+
 from os import makedirs
+from rich.console import Console
 from os.path import exists, expanduser, join
 
 
@@ -14,11 +14,11 @@ class LeakixScraper:
 
     def __init__(self, api_key=None, verbose=False):
         """
-        Initialize the LeakixScraper instance.
-        
+        Initialize a new instance of the LeakixScraper.
+
         Args:
-            api_key (str): The API key for Leakix. Defaults to None.
-            verbose (bool): If True, print additional debug information. Defaults to False.
+            api_key (str, optional): The API key for accessing Leakix services. Defaults to None.
+            verbose (bool, optional): Flag to enable verbose logging. Defaults to False.
         """
         self.console = Console()
         user_folder = expanduser("~")
@@ -30,33 +30,35 @@ class LeakixScraper:
 
     def log(self, *args, **kwargs):
         """
-        Print log messages if verbose mode is enabled.
-        
+        Log messages conditionally based on the verbose flag.
+
         Args:
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
+            *args: Variable-length arguments to pass to the print function.
+            **kwargs: Keyword arguments to pass to the print function.
         """
         if self.verbose:
             self.console.print(*args, **kwargs)
-
+    
+            
     def execute(self, scope="leak", query="", pages=2, plugin="", fields="protocol,ip,port"):
         """
-        Execute the scraper.
-        
+        Execute the scraper to fetch data based on provided parameters.
+
         Args:
-            scope (str): The scope of the search. Defaults to "leak".
-            query (str): The query parameter. Defaults to "".
-            pages (int): Number of pages to scrape. Defaults to 2.
-            plugin (str): Comma-separated plugin names. Defaults to "".
+            scope (str, optional): The scope of the search. Defaults to "leak".
+            query (str, optional): Search query string. Defaults to an empty string.
+            pages (int, optional): Number of pages to scrape. Defaults to 2.
+            plugin (str, optional): Comma-separated plugin names. Defaults to an empty string.
+            fields (str, optional): Comma-separated list of fields to extract from results. Defaults to "protocol,ip,port".
 
         Returns:
-            list: The scraped results.
+            list: A list of scraped results based on the provided criteria.
         """
             
         plugins = self.get_plugins()
         given_plugins = [p.strip() for p in plugin.split(",") if p.strip()]
 
-        plugin_names = {plugin_name for plugin_name, _ in plugins}
+        plugin_names = {plugin_name for plugin_name in plugins}
         invalid_plugins = [p for p in given_plugins if p not in plugin_names]
         if invalid_plugins:
             raise ValueError(f"Invalid plugins: {', '.join(invalid_plugins)}. Valid plugins: {plugins}")
@@ -67,38 +69,20 @@ class LeakixScraper:
     
     def get_plugins(self):
         """
-        Fetch the list of available plugins from Leakix.
+        Retrieve the list of available plugins from Leakix.
 
         Returns:
-            list: A list of tuples where each tuple contains a plugin name and its access level.
+            list[str]: A list of available plugin names.
         """
-        plugins_url = 'https://leakix.net/plugins'
-        response = requests.get(plugins_url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        row_elements = soup.find_all('div', {'class': 'row'})
-
-        plugins_dict = {}
-
-        for row in row_elements:
-            plugin_name_element = row.find('div', {'class': 'col-sm-3'})
-            
-            if plugin_name_element:
-                plugin_name = plugin_name_element.find('a').text.strip()
-                
-                access_level_element = plugin_name_element.find_next_sibling('div', {'class': 'col-sm-3'})
-                
-                if access_level_element:
-                    access_level = access_level_element.find('em').text.strip() if access_level_element.find('em') else "Unknown"
-                    plugins_dict[plugin_name] = access_level
-
-        plugins_list = [(plugin_name, access_level) for plugin_name, access_level in plugins_dict.items()]
-
+        response = requests.get("https://leakix.net/api/plugins")
+        plugins = json.loads(response.text)
+        plugins_list = [plugin["name"] for plugin in plugins]
         return plugins_list
 
     def save_api_key(self, api_key):
         """
-        Save the provided API key to a file.
-        
+        Save the API key to a local file for later use.
+
         Args:
             api_key (str): The API key to be saved.
         """
@@ -107,10 +91,10 @@ class LeakixScraper:
 
     def read_api_key(self):
         """
-        Read the API key from the file.
-        
+        Retrieve the API key from the local file.
+
         Returns:
-            str: The read API key or None if the file doesn't exist.
+            str or None: The stored API key or None if no key is found.
         """
         if not exists(self.api_key_file):
             return None
@@ -119,6 +103,17 @@ class LeakixScraper:
             return f.read().strip()
 
     def extract_data_from_json(self, data, fields):
+        """
+        Extract specific fields from the provided JSON data.
+
+        Args:
+            data (dict): The JSON data from which fields are to be extracted.
+            fields (str or None): Comma-separated list of fields to extract. 
+                                  Each field can be a top-level key or a nested key separated by dots.
+
+        Returns:
+            dict: A dictionary with extracted field data.
+        """
         if fields is None:
             fields_list = ["protocol", "ip", "port"]
         else:
@@ -143,22 +138,49 @@ class LeakixScraper:
 
         return extracted_data
 
-    
-    def query(self, scope, pages=2, query_param="", plugins=None, fields=None):
+    def get_all_fields(self, data, current_path=None):
         """
-        Query the Leakix website and get results.
+        Recursively retrieve all field paths from a nested dictionary.
+
+        Args:
+            data (dict): The nested dictionary to extract field paths from.
+            current_path (list, optional): Current path being traversed. Defaults to None.
+
+        Returns:
+            list[str]: A list of field paths sorted alphabetically.
+        """        
+        fields = []
+        if current_path is None:
+            current_path = []
         
+        if isinstance(data, dict):
+            for key, value in sorted(data.items()):
+                new_path = current_path + [key]
+                if isinstance(value, dict):
+                    fields.extend(self.get_all_fields(value, new_path))
+                else:
+                    fields.append('.'.join(new_path))
+                    
+        return sorted(fields)
+
+
+    def query(self, scope, pages=2, query_param="", plugins=None, fields=None, return_data_only=False):
+        """
+        Perform a query on the Leakix website based on provided criteria.
+
         Args:
             scope (str): The scope of the search.
-            pages (int): Number of pages to scrape. Defaults to 2.
-            query_param (str): The query parameter. Defaults to "".
-            plugins (list or None): List of plugin names or a single plugin name. Defaults to None.
-            fields (list of str or None): List of fields to extract from the JSON. 
-                Each field can be a top-level key or a nested key separated by dots. Defaults to ["protocol", "ip", "port"].
-            
+            pages (int, optional): Number of pages to scrape. Defaults to 2.
+            query_param (str, optional): The query string to be used. Defaults to an empty string.
+            plugins (list or str, optional): List or comma-separated string of plugin names. Defaults to None.
+            fields (list of str or None, optional): List of fields to extract from the results. 
+                                                   Each field can be a top-level key or nested key separated by dots.
+            return_data_only (bool, optional): Return raw data only without processing. Defaults to False.
+
         Returns:
-            list of str: List of formatted strings extracted from the JSON.
+            list of str or dict: List of processed strings or raw data based on `return_data_only` flag.
         """
+        data = []
         if plugins:
             if isinstance(plugins, str):
                 plugins = plugins.split(',')
@@ -174,40 +196,53 @@ class LeakixScraper:
                 headers={"api-key": self.api_key, "Accept": "application/json"},
             )
 
-            if response.text == "null":
-                self.log("[bold yellow][!] No more results available (Please check your query or scope)")
-                break
-            elif response.text == '{"Error":"Page limit"}':
-                self.log(f"[bold red][X] Error : Page Limit for free users and non users ({page})")
-                break
-
             try:
+                if not response.text:
+                    break
+                
                 data = json.loads(response.text)
+                if not data:
+                    self.log("[bold yellow][!] No more results available (Please check your query or scope)")
+                    break
+                
+                if isinstance(data, dict) and data.get('Error') == 'Page limit':
+                    self.log(f"[bold red][X] Error : Page Limit for free users and non users ({page})")
+                    break
+
                 for json_data in data[1:]:
                     result_dict = self.extract_data_from_json(json_data, fields)
                     self.log(f"[bold white][+] {', '.join([f'{k}: {v}' for k, v in result_dict.items()])}") 
                     results.append(result_dict)
+
             except json.JSONDecodeError:
                 self.log("[bold yellow][!] No more results available (Please check your query or scope)")
                 break
 
             time.sleep(1.2)
+            
+        if return_data_only:
+            return data    
+        
         return results
 
     def run(self, scope, pages=2, query="", plugins=None, output=None, fields=None):
         """
-        Main function to start the scraping process.
-        
+        Initiate the scraping process based on provided criteria and optionally save results to a file.
+
         Args:
             scope (str): The scope of the search.
-            pages (int): Number of pages to scrape. Defaults to 2.
-            query (str): The query parameter. Defaults to "".
-            plugins (list or None): List of plugin names or a single plugin name. Defaults to None.
-            output (str): The filename to save the scraped results. Defaults to None.
+            pages (int, optional): Number of pages to scrape. Defaults to 2.
+            query (str, optional): The query string for the search. Defaults to an empty string.
+            plugins (list or str, optional): List or comma-separated string of plugin names. Defaults to None.
+            output (str, optional): Path to the file where results should be saved. If None, results won't be saved. Defaults to None.
+            fields (list of str or None, optional): List of fields to extract from results. Defaults to None.
+
+        Returns:
+            None: This method does not return any value.
         """
         
         all_plugins = self.get_plugins()
-        plugin_names = {plugin_name for plugin_name, _ in all_plugins}
+        plugin_names = {plugin_name for plugin_name in all_plugins}
         if plugins:
             if isinstance(plugins, str):
                 plugins = plugins.split(',')

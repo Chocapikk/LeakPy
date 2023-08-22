@@ -14,6 +14,8 @@ pip install leakpy
 
 ## 🖥️ CLI Usage 
 
+To see all available commands and options:
+
 ```bash
 $ leakpy -h
 ```
@@ -21,35 +23,33 @@ $ leakpy -h
 Options:
 
 ```plaintext
-$ leakpy -h                                                                               
-
 usage: leakpy [-h] [-s {service,leak}] [-p PAGES] [-q QUERY] [-P PLUGINS] [-o OUTPUT]
-              [-f FIELDS] [-r] [-lp]
+              [-f FIELDS] [-r] [-lp] [-lf]
 
 options:
   -h, --help            show this help message and exit
   -s {service,leak}, --scope {service,leak}
-                        Type Of Informations
+                        Specify the type of information you're looking for.
   -p PAGES, --pages PAGES
-                        Number Of Pages
+                        Specify the number of pages to retrieve.
   -q QUERY, --query QUERY
-                        Specify The Query
+                        Specify your search query.
   -P PLUGINS, --plugins PLUGINS
-                        Specify The Plugin(s)
+                        Specify the plugin(s) to use.
   -o OUTPUT, --output OUTPUT
-                        Output File
+                        Specify the output file path.
   -f FIELDS, --fields FIELDS
-                        Fields to extract from the JSON, comma-separated. For example:
-                        'protocol,ip,port'
-  -r, --reset-api       Reset the saved API key
-  -lp, --list-plugins   List Available Plugins
+                        Fields to extract from the JSON data, comma-separated (e.g., 'protocol,ip,port').
+  -r, --reset-api       Reset the saved API key.
+  -lp, --list-plugins   List all available plugins.
+  -lf, --list-fields    List all possible fields from a sample JSON.
 ```
 
 ## 📘 Library Documentation
 
 ### LeakixScraper
 
-The `LeakixScraper` class provides a direct and simple interface to the leakix.net API.
+The `LeakixScraper` class offers a direct and user-friendly interface to the leakix.net API.
 
 **Initialization:**
 
@@ -66,24 +66,24 @@ scraper = LeakixScraper(api_key="Your_API_Key")
     Conduct a search on leakix.net.
 
     Arguments:
-    - `scope` (str): Type of information (e.g., "service" or "leak").
-    - `query` (str): The query to be executed.
-    - `pages` (int): Number of pages to fetch.
-    - `plugin` (str): Plugins to use (e.g., "PulseConnectPlugin, SharePointPlugin")
-    - `fields` (str): Fields to extract from the JSON, comma-separated (e.g., "event_source, host, ip, port").
+    - `scope` (str): Type of information to search for (e.g., "service" or "leak").
+    - `query` (str): The specific search query.
+    - `pages` (int): The number of pages to fetch.
+    - `plugin` (str): Specify the plugins to use (e.g., "PulseConnectPlugin, SharePointPlugin").
+    - `fields` (str): Specify the fields to extract from the JSON data, separated by commas (e.g., "event_source, host, ip, port").
 
     Example:
 
     ```python
-    results = scraper.execute(scope="leak", query='+country:"France"', pages=5, fields="event_source, host, ip, port", plugin="PulseConnectPlugin")
+    results = scraper.execute(scope="leak", query='+country:"France"', pages=5, plugin="PulseConnectPlugin", fields="event_source, host, ip, port")
     for result in results:
-        print("Event Source:", result["event_source"])
-        print("Host:", result["host"])
-        print("IP:", result["ip"])
-        print("Port:", result["port"])
-        print("*" * 20)
+        print("Event Source:", result.get("event_source"))
+        print("Host:", result.get("host"))
+        print("IP:", result.get("ip"))
+        print("Port:", result.get("port"))
+        print("-" * 20)
     ```
 
 ## 🚫 Disclaimer
 
-LeakPy is an unofficial tool and is not affiliated with leakix.net. The developers of LeakPy are not responsible for any misuse or potential damage from this tool. Use responsibly and ensure you have the necessary permissions when accessing data.
+LeakPy is an independent tool and has no affiliation with leakix.net. The creators of LeakPy cannot be held responsible for any misuse or potential damage resulting from using this tool. Please use responsibly, and ensure you have the necessary permissions when accessing any data.
