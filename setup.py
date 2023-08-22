@@ -16,7 +16,8 @@ setuptools.setup(
     install_requires=[
         'bs4',
         'requests',
-        'rich'
+        'rich',
+	'prompt_toolkit'
     ],
     entry_points={
         'console_scripts': [
