@@ -151,6 +151,16 @@ def main():
 
         scraper = LeakixScraper(verbose=True)
 
+        if not scraper.has_api_key():
+            session = PromptSession()
+            console.print("[bold yellow]API key is missing. Please enter your API key to continue.[/bold yellow]")
+            api_key = session.prompt(HTML('<ansibold><ansiwhite>API Key:</ansiwhite></ansibold> '), is_password=True).strip()
+            scraper.save_api_key(api_key)
+
+            if not scraper.has_api_key():
+                console.print("[bold red]The provided API key is invalid. It must be 48 characters long.[/bold red]")
+                sys.exit(1)            
+                
         if args.interactive:
             interactive_mode()
             sys.exit(0)

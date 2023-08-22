@@ -21,18 +21,27 @@ class LeakixScraper:
             verbose (bool, optional): Flag to enable verbose logging. Defaults to False.
         """
         self.console = Console()
+        self.verbose = verbose
         user_folder = expanduser("~")
         local_folder = join(user_folder, ".local")
         makedirs(local_folder) if not exists(local_folder) else None
         self.api_key_file = join(local_folder, ".api.txt")
         self.api_key = api_key.strip() if api_key else self.read_api_key()
         
-        if not self.api_key or len(self.api_key) != 48:
-            raise ValueError("A valid API key is required.")
-        
-        self.verbose = verbose
 
+    def has_api_key(self):
+        """
+        Check if an API key is available and valid (48 characters).
 
+        Returns:
+            bool: True if API key is valid, False otherwise.
+        """
+        self.api_key = self.read_api_key()
+        if not self.api_key:
+            return False
+        return len(self.api_key) == 48
+ 
+    
     def log(self, *args, **kwargs):
         """
         Log messages conditionally based on the verbose flag.
@@ -201,6 +210,10 @@ class LeakixScraper:
         Returns:
             list of str or dict: List of processed strings or raw data based on `return_data_only` flag.
         """
+        
+        if not self.has_api_key():
+            raise ValueError("A valid API key is required.")
+        
         data = []
         if plugins:
             if isinstance(plugins, str):
@@ -275,16 +288,8 @@ class LeakixScraper:
                     for plugin_name, access in all_plugins:
                         self.log(f"[bold cyan][+] {plugin_name} - {access}")
                     sys.exit(1)
-
-        if not self.api_key or len(self.api_key) != 48:
-            self.api_key = input("Please Specify your API Key (leave blank if you don't have) : ")
-            self.save_api_key(self.api_key)
-
-        if not self.api_key:
-            self.log(f"\n[bold yellow][!] Querying without API Key...\n (remove or edit {self.api_key_file} to add API Key if you have)")
-        else:
-            self.log("\n[bold green][+] Using API Key for queries...\n")
-
+        
+        self.log("\n[bold green][+] Using API Key for queries...\n")    
         results = self.query(scope, pages, query, plugins, fields)
         if output:
             with open(output, "a") as f:
