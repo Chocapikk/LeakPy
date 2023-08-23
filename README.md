@@ -23,8 +23,8 @@ $ leakpy -h
 Options:
 
 ```plaintext
-usage: leakpy [-h] [-s {service,leak}] [-p PAGES] [-q QUERY] [-P PLUGINS] [-o OUTPUT]
-              [-f FIELDS] [-i] [-r] [-lp] [-lf]
+usage: leakpy [-h] [-s {service,leak}] [-p PAGES] [-q QUERY] [-P PLUGINS] [-o OUTPUT] [-f FIELDS] [-b]
+              [-i] [-r] [-lp] [-lf]
 
 options:
   -h, --help            show this help message and exit
@@ -41,6 +41,7 @@ options:
   -f FIELDS, --fields FIELDS
                         Fields to extract from the JSON, comma-separated. For example:
                         'protocol,ip,port'
+  -b, --bulk            Activate bulk mode.
   -i, --interactive     Activate interactive mode.
   -r, --reset-api       Reset the saved API key
   -lp, --list-plugins   List Available Plugins
@@ -86,26 +87,27 @@ The `LeakixScraper` class offers a direct and user-friendly interface to the lea
 ```python
 from leakpy.scraper import LeakixScraper
 
-scraper = LeakixScraper(api_key="Your_API_Key")
+scraper = LeakixScraper(api_key="Your_API_Key", verbose=False)
 ```
 
 **Methods:**
 
-- **execute(scope, query, pages, plugin, fields)**
+- **execute(scope, query, pages, plugin, fields, bulk=False)**
 
     Conduct a search on leakix.net.
 
     Arguments:
-    - `scope` (str): Type of information to search for (e.g., "service" or "leak").
+    - `scope` (str): Type of information to search for, like "service" or "leak".
     - `query` (str): The specific search query.
     - `pages` (int): The number of pages to fetch.
-    - `plugin` (str): Specify the plugins to use (e.g., "PulseConnectPlugin, SharePointPlugin").
-    - `fields` (str): Specify the fields to extract from the JSON data, separated by commas (e.g., "event_source, host, ip, port").
+    - `plugin` (str): Specify the plugins to use, for example "PulseConnectPlugin".
+    - `fields` (str): Specify the fields to extract from the JSON data, separated by commas, like "event_source, host, ip, port".
+    - `use_bulk` (bool): Activate bulk mode. Defaults to `False`.
 
     Example:
 
     ```python
-    results = scraper.execute(scope="leak", query='+country:"France"', pages=5, plugin="PulseConnectPlugin", fields="event_source, host, ip, port")
+    results = scraper.execute(scope="leak", query='+country:"France"', pages=5, plugin="PulseConnectPlugin", fields="event_source, host, ip, port", use_bulk=False)
     for result in results:
         print("Event Source:", result.get("event_source"))
         print("Host:", result.get("host"))

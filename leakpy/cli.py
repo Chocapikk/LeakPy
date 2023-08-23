@@ -37,7 +37,8 @@ def interactive_mode():
         "query": "",
         "plugins": None,
         "output": None,
-        "fields": None
+        "fields": None,
+        "use_bulk": False
     }
 
     commands = {
@@ -45,7 +46,7 @@ def interactive_mode():
         'exit': lambda args: console.print("[bold green]Exiting interactive mode. Goodbye!") or 'exit',
         'help': lambda args: display_help(console),
         'set': lambda args: set_command(console, settings, args),
-        'run': lambda args: scraper.run(settings["scope"], int(settings["pages"]), settings["query"], settings["plugins"], settings["output"], settings["fields"]),
+        'run': lambda args: scraper.run(settings["scope"], int(settings["pages"]), settings["query"], settings["plugins"], settings["output"], settings["fields"], bool(settings["use_bulk"])),
         'list-fields': lambda args: list_fields_command(console, scraper),
         'list-plugins': lambda args: list_plugins_command(console, scraper)
     }
@@ -79,19 +80,24 @@ def set_command(console, settings, args):
     if len(args) >= 2:
         key = args[0]
         value = ' '.join(args[1:])
+
+        if key == "use_bulk":
+            value = value.lower() == "true"
+
         if key in settings:
             settings[key] = value
             console.print(f"[bold cyan]{key}[/bold cyan] set to [bold magenta]{value}[/bold magenta].")
         else:
             console.print(f"[bold red]Unknown setting: {key}. Use 'show' to view available settings.")
     else:
-        console.print("[bold red]Usage: set [setting_name] [value]")
+        console.print("[bold red]Usage: set <setting_name> <value>")
+
 
 def show_command(console, settings):
     console.print("\n[bold magenta]Current Settings:[/bold magenta]\n")
     for key, value in settings.items():
-        console.print(f"[bold cyan]{key}:[/bold cyan] {value}")
-
+        console.print(f"[bold cyan]{key}:[/bold cyan][bold magenta] {value}[/bold magenta]")
+    console.print("\n")    
 
 def organize_fields(fields):
     organized = defaultdict(list)
@@ -142,6 +148,7 @@ def main():
         parser.add_argument("-P", "--plugins", help="Specify The Plugin(s)", type=str, default=None)
         parser.add_argument("-o", "--output", help="Output File", type=str)
         parser.add_argument("-f", "--fields", help="Fields to extract from the JSON, comma-separated. For example: 'protocol,ip,port'", type=str)
+        parser.add_argument("-b", "--bulk", action="store_true", help="Activate bulk mode.")
         parser.add_argument("-i", "--interactive", action="store_true", help="Activate interactive mode.")
         parser.add_argument("-r", "--reset-api", action="store_true", help="Reset the saved API key")
         parser.add_argument("-lp", "--list-plugins", action="store_true", help="List Available Plugins")
@@ -195,7 +202,7 @@ def main():
             sys.exit(0)
 
         
-        scraper.run(args.scope, args.pages, args.query, args.plugins, args.output, args.fields)    
+        scraper.run(args.scope, args.pages, args.query, args.plugins, args.output, args.fields, args.bulk)    
         
     except Exception as e:
         error_message = traceback.format_exc()

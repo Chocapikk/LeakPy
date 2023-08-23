@@ -91,7 +91,7 @@ class LeakixScraper:
         return results
 
         
-    def execute(self, scope="leak", query="", pages=2, plugin="", fields="protocol,ip,port"):
+    def execute(self, scope="leak", query="", pages=2, plugin="", fields="protocol,ip,port", use_bulk=False):
         """
         Execute the scraper to fetch data based on provided parameters.
 
@@ -101,7 +101,8 @@ class LeakixScraper:
             pages (int, optional): Number of pages to scrape. Defaults to 2.
             plugin (str, optional): Comma-separated plugin names. Defaults to an empty string.
             fields (str, optional): Comma-separated list of fields to extract from results. Defaults to "protocol,ip,port".
-
+            use_bulk (bool, optional): Whether to use the bulk functionality. Defaults to False.
+            
         Returns:
             list: A list of scraped results based on the provided criteria.
         """
@@ -115,7 +116,7 @@ class LeakixScraper:
             raise ValueError(f"Invalid plugins: {', '.join(invalid_plugins)}. Valid plugins: {plugins}")
 
         valid_plugins = given_plugins
-        results = self.query(scope, pages, query, valid_plugins, fields)
+        results = self.query(scope, pages, query, valid_plugins, fields, use_bulk)
         return results
     
     def get_plugins(self):
@@ -206,7 +207,7 @@ class LeakixScraper:
         self.verbose = not self.verbose
         
         if not sample_data or not isinstance(sample_data, list) or not sample_data:
-            self.console.print("[bold red]Failed to retrieve a sample JSON. Cannot list fields.")
+            self.log("[bold red]Failed to retrieve a sample JSON. Cannot list fields.")
             return []
 
         return self.get_all_fields(sample_data[0])
@@ -238,7 +239,7 @@ class LeakixScraper:
         return sorted(fields)
 
 
-    def query(self, scope, pages=2, query_param="", plugins=None, fields=None, return_data_only=False):
+    def query(self, scope, pages=2, query_param="", plugins=None, fields=None, use_bulk=False, return_data_only=False):
         """
         Perform a query on the Leakix website based on provided criteria.
 
@@ -268,7 +269,7 @@ class LeakixScraper:
             plugin_queries = [f"{plugin}" for plugin in plugins]
             query_param += " +plugin:(" + ' '.join(plugin_queries) + ")"
 
-        if self.is_api_pro:
+        if self.is_api_pro and use_bulk:
             self.log("[bold green][-] Opting for bulk search due to the availability of a Pro API Key.")
             response = requests.get(
                 "https://leakix.net/bulk/search",
@@ -329,7 +330,7 @@ class LeakixScraper:
         
         return results
 
-    def run(self, scope, pages=2, query="", plugins=None, output=None, fields=None):
+    def run(self, scope, pages=2, query="", plugins=None, output=None, fields=None, use_bulk=False):
         """
         Initiate the scraping process based on provided criteria and optionally save results to a file.
 
@@ -359,8 +360,10 @@ class LeakixScraper:
                         self.log(f"[bold cyan][+] {plugin_name}")
                     sys.exit(1)
         
-        self.log("\n[bold green][+] Using API Key for queries...\n")    
-        results = self.query(scope, pages, query, plugins, fields)
+        self.log("\n[bold green][+] Using API Key for queries...\n")
+          
+        results = self.query(scope, pages, query, plugins, fields, use_bulk)
+        
         if output:
             with open(output, "a") as f:
                 for result in results:
