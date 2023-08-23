@@ -27,8 +27,19 @@ class LeakixScraper:
         makedirs(local_folder) if not exists(local_folder) else None
         self.api_key_file = join(local_folder, ".api.txt")
         self.api_key = api_key.strip() if api_key else self.read_api_key()
+        self.is_api_pro = None
         
+    def api_check_privilege(self, plugin, scope):
+        """Check if the API is pro using a specific plugin and scope."""
+        response = requests.get(
+            "https://leakix.net/search",
+            params={"page": "1", "q": plugin, "scope": scope},
+            headers={"api-key": self.api_key, "Accept": "application/json"},
+        )
 
+        return bool(response.text)
+
+    
     def has_api_key(self):
         """
         Check if an API key is available and valid (48 characters).
@@ -53,7 +64,33 @@ class LeakixScraper:
         if self.verbose:
             self.console.print(*args, **kwargs)
     
+    def process_and_print_data(self, data, fields):
+        """
+        Process the provided data, extract desired fields, and print the results.
+
+        Args:
+            data (list or dict): Either a list of dictionaries or a single dictionary, typically JSON data to be processed.
+            fields (str or None): Comma-separated list of fields to extract. 
+                                Each field can be a top-level key or a nested key separated by dots.
+
+        Returns:
+            list: A list of dictionaries containing the extracted fields from the data.
             
+        Note:
+            This method also logs the extracted data in a formatted manner.
+        """
+        results = []
+
+        if not isinstance(data, list):
+            data = [data]
+
+        for json_data in data:
+            result_dict = self.extract_data_from_json(json_data, fields)
+            self.log(f"[bold white][+] {', '.join([f'{k}: {v}' for k, v in result_dict.items()])}")
+            results.append(result_dict)
+        return results
+
+        
     def execute(self, scope="leak", query="", pages=2, plugin="", fields="protocol,ip,port"):
         """
         Execute the scraper to fetch data based on provided parameters.
@@ -121,36 +158,43 @@ class LeakixScraper:
         Extract specific fields from the provided JSON data.
 
         Args:
-            data (dict): The JSON data from which fields are to be extracted.
+            data (dict or list of dicts): The JSON data from which fields are to be extracted.
             fields (str or None): Comma-separated list of fields to extract. 
-                                  Each field can be a top-level key or a nested key separated by dots.
+                                Each field can be a top-level key or a nested key separated by dots.
 
         Returns:
-            dict: A dictionary with extracted field data.
+            dict or list of dicts: A dictionary or a list of dictionaries with extracted field data.
         """
         if fields is None:
             fields_list = ["protocol", "ip", "port"]
         else:
             fields_list = [field.strip() for field in fields.split(',')]
-        extracted_data = {}
-
-        for field in fields_list:
-            try:
-                keys = field.split('.')
-                value = data
-                for key in keys:
-                    value = value[key]
-                extracted_data[field] = value
-                    
-            except (KeyError, TypeError):
-                extracted_data[field] = "N/A"
         
-        if fields_list == ["protocol", "ip", "port"]:
-            protocol = data.get("protocol")
-            if protocol in ["http", "https"]:
-                return {'url': f"{protocol}://{data['ip']}:{data['port']}"}
+        def extract_from_single_entry(entry):
+            extracted_data = {}
+            for field in fields_list:
+                try:
+                    keys = field.split('.')
+                    value = entry
+                    for key in keys:
+                        value = value[key]
+                    extracted_data[field] = value
+                        
+                except (KeyError, TypeError):
+                    extracted_data[field] = "N/A"
+            
+            if fields_list == ["protocol", "ip", "port"]:
+                protocol = entry.get("protocol")
+                if protocol in ["http", "https"]:
+                    return {'url': f"{protocol}://{entry['ip']}:{entry['port']}"}
+            
+            return extracted_data
 
-        return extracted_data
+        if "events" in data and isinstance(data["events"], list):
+            return [extract_from_single_entry(event) for event in data["events"]]
+
+        return extract_from_single_entry(data)
+
 
     def list_fields(self):
         """
@@ -214,6 +258,9 @@ class LeakixScraper:
         if not self.has_api_key():
             raise ValueError("A valid API key is required.")
         
+        if self.is_api_pro is None:
+            self.is_api_pro = self.api_check_privilege("WpUserEnumHttp", "leak")
+            
         data = []
         if plugins:
             if isinstance(plugins, str):
@@ -221,6 +268,32 @@ class LeakixScraper:
             plugin_queries = [f"{plugin}" for plugin in plugins]
             query_param += " +plugin:(" + ' '.join(plugin_queries) + ")"
 
+        if self.is_api_pro:
+            self.log("[bold green][-] Opting for bulk search due to the availability of a Pro API Key.")
+            response = requests.get(
+                "https://leakix.net/bulk/search",
+                params={"q": query_param},
+                headers={"api-key": self.api_key},
+            )
+            
+            try:
+                loaded_data = [json.loads(line) for line in response.text.strip().split("\n") if line.strip()]
+                data = [item.get('events', []) for item in loaded_data if isinstance(item, dict) and 'events' in item]
+                data = [event for sublist in data for event in sublist]
+
+                if not data:
+                    self.log("[bold yellow][!] No results returned from bulk query.")
+                    return []
+
+                if return_data_only:
+                    return data
+
+                return self.process_and_print_data(data, fields)
+
+            except json.JSONDecodeError:
+                self.log("[bold yellow][!] Error processing bulk query response.")
+                return []
+        
         results = []
         for page in range(pages):
             self.log(f"[bold green]\n[-] Query {page + 1} : \n")
@@ -243,10 +316,7 @@ class LeakixScraper:
                     self.log(f"[bold red][X] Error : Page Limit for free users and non users ({page})")
                     break
 
-                for json_data in data[1:]:
-                    result_dict = self.extract_data_from_json(json_data, fields)
-                    self.log(f"[bold white][+] {', '.join([f'{k}: {v}' for k, v in result_dict.items()])}") 
-                    results.append(result_dict)
+                results.extend(self.process_and_print_data(data[1:], fields))
 
             except json.JSONDecodeError:
                 self.log("[bold yellow][!] No more results available (Please check your query or scope)")
