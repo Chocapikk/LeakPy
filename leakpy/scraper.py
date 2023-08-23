@@ -355,8 +355,8 @@ class LeakixScraper:
                 if plugin not in plugin_names:
                     self.log(f"\n[bold red][X] Plugin '{plugin}' is not valid")
                     self.log(f"[bold yellow][!] Plugins available : {len(all_plugins)}\n")
-                    for plugin_name, access in all_plugins:
-                        self.log(f"[bold cyan][+] {plugin_name} - {access}")
+                    for plugin_name in all_plugins:
+                        self.log(f"[bold cyan][+] {plugin_name}")
                     sys.exit(1)
         
         self.log("\n[bold green][+] Using API Key for queries...\n")    
