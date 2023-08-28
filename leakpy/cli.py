@@ -3,6 +3,8 @@
 import sys
 import argparse
 import traceback
+
+from . import __version__
 from rich.console import Console
 from .scraper import LeakixScraper
 from collections import defaultdict
@@ -139,6 +141,7 @@ def list_plugins_command(console, scraper):
     
 def main():
     console = Console()
+    console.print("[bold magenta][~] LeakPy " + __version__ + "[/bold magenta]")
     
     try:
         parser = argparse.ArgumentParser()
@@ -153,7 +156,8 @@ def main():
         parser.add_argument("-r", "--reset-api", action="store_true", help="Reset the saved API key")
         parser.add_argument("-lp", "--list-plugins", action="store_true", help="List Available Plugins")
         parser.add_argument("-lf", "--list-fields", action="store_true", help="List all possible fields from a sample JSON")
-       
+        parser.add_argument("-v", "--version", action="version", version="LeakPy " + __version__)
+
         args = parser.parse_args()
 
         scraper = LeakixScraper(verbose=True)

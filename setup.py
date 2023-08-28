@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='leakpy',
-    version='1.6.4',
+    version='1.6.5',
     author="Valentin Lobstein",
     author_email="balgogan@protonmail.com",
     description="LeakIX API Client",

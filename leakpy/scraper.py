@@ -29,6 +29,7 @@ class LeakixScraper:
         self.api_key = api_key.strip() if api_key else self.read_api_key()
         self.is_api_pro = None
         
+        
     def api_check_privilege(self, plugin, scope):
         """Check if the API is pro using a specific plugin and scope."""
         response = requests.get(

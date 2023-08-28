@@ -23,6 +23,7 @@ $ leakpy -h
 Options:
 
 ```plaintext
+[~] LeakPy x.x.x
 usage: leakpy [-h] [-s {service,leak}] [-p PAGES] [-q QUERY] [-P PLUGINS] [-o OUTPUT] [-f FIELDS] [-b]
               [-i] [-r] [-lp] [-lf]
 
@@ -46,6 +47,7 @@ options:
   -r, --reset-api       Reset the saved API key
   -lp, --list-plugins   List Available Plugins
   -lf, --list-fields    List all possible fields from a sample JSON.
+  -v, --version         show program's version number and exit
 ```
 
 ### Interactive Mode:
