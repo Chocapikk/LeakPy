@@ -126,10 +126,15 @@ class LeakixScraper:
         Returns:
             list[str]: A list of available plugin names.
         """
-        response = requests.get("https://leakix.net/api/plugins")
-        plugins = json.loads(response.text)
-        plugins_list = [plugin["name"] for plugin in plugins]
-        return plugins_list
+        try:
+            response = requests.get("https://leakix.net/api/plugins")
+            response.raise_for_status()
+            
+            plugins = json.loads(response.text)
+            plugins_list = [plugin["name"] for plugin in plugins]
+            return plugins_list
+        except (requests.RequestException, json.JSONDecodeError):
+            return []
 
     def save_api_key(self, api_key):
         """
