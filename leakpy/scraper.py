@@ -26,10 +26,15 @@ class LeakixScraper:
         local_folder = join(user_folder, ".local")
         makedirs(local_folder) if not exists(local_folder) else None
         self.api_key_file = join(local_folder, ".api.txt")
-        self.api_key = api_key.strip() if api_key else self.read_api_key()
+        
+        if api_key:
+            self.api_key = api_key.strip()
+            self.save_api_key(self.api_key)
+        else:
+            self.api_key = self.read_api_key()
+        
         self.is_api_pro = None
-        
-        
+
     def api_check_privilege(self, plugin, scope):
         """Check if the API is pro using a specific plugin and scope."""
         response = requests.get(
