@@ -215,10 +215,12 @@ class LeakixScraper:
             return extracted_data
 
         if "events" in data and isinstance(data["events"], list):
-            return [extract_from_single_entry(event, fields_list) for event in data["events"]]
+            return [
+                extract_from_single_entry(event, fields_list)
+                for event in data["events"]
+            ]
 
         return extract_from_single_entry(data, fields_list)
-
 
     def list_fields(self):
         """
@@ -339,9 +341,9 @@ class LeakixScraper:
         for page in range(pages):
             params = {"page": str(page), "q": query_param, "scope": scope}
             headers = {"api-key": self.api_key, "Accept": "application/json"}
-            
+
             self.log(f"[bold green]\n[-] Query {page + 1} : \n")
-            
+
             response = requests.get(
                 "https://leakix.net/search",
                 params=params,
@@ -429,10 +431,8 @@ class LeakixScraper:
             self.log(
                 f"[bold yellow][!] Here's a list of available plugins for reference:"
             )
-            self.log(
-                f"[bold yellow][!] Plugins available : {len(all_plugins)}\n"
-            )
-                
+            self.log(f"[bold yellow][!] Plugins available : {len(all_plugins)}\n")
+
             for plugin_name in all_plugins:
                 self.log(f"[bold cyan][+] {plugin_name}")
         elif not results:
