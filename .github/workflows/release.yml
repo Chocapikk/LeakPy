@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for changelog generation
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+
+    - name: Extract version from tag
+      id: get_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Verify version matches package
+      run: |
+        TAG_VERSION="${{ steps.get_version.outputs.version }}"
+        PACKAGE_VERSION=$(python -c "from leakpy import __version__; print(__version__)")
+        if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+          echo "Error: Tag version ($TAG_VERSION) does not match package version ($PACKAGE_VERSION)"
+          exit 1
+        fi
+        echo "Version match confirmed: $TAG_VERSION"
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        TAG_VERSION="${{ steps.get_version.outputs.version }}"
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        if [ -z "$PREVIOUS_TAG" ]; then
+          echo "No previous tag found, showing all commits"
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+        else
+          echo "Previous tag: $PREVIOUS_TAG"
+          CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+        fi
+        
+        # Extract changelog from CHANGELOG.md if it exists
+        if [ -f CHANGELOG.md ]; then
+          echo "Extracting changelog from CHANGELOG.md for version $TAG_VERSION"
+          # Extract the section for this version
+          CHANGELOG_SECTION=$(awk "/^## \[$TAG_VERSION\]/,/^## \[/" CHANGELOG.md | sed '$d')
+          if [ -n "$CHANGELOG_SECTION" ]; then
+            CHANGELOG="$CHANGELOG_SECTION"
+          fi
+        fi
+        
+        # Save to file for later use
+        echo "$CHANGELOG" > RELEASE_NOTES.md
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Display changelog
+      run: |
+        echo "## 📋 Release Changelog"
+        echo ""
+        cat RELEASE_NOTES.md
+        echo ""
+
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Check package
+      run: |
+        python -m twine check dist/*
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          dist/*
+        body_path: RELEASE_NOTES.md
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+

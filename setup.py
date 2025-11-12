@@ -1,11 +1,11 @@
 import re
 import setuptools
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 def get_version():
-    with open("leakpy/__init__.py", "rt") as file:
+    with open("leakpy/__init__.py", "rt", encoding="utf-8") as file:
         version = re.search(r'__version__ = \"(.*?)\"', file.read()).group(1)
     return version
 
@@ -22,13 +22,21 @@ setuptools.setup(
     install_requires=[
         'requests',
         'rich',
-        'prompt_toolkit'
+        'prompt_toolkit',
+        'keyring>=23.0.0'
     ],
-    python_requires='>=3.6',  
+    python_requires='>=3.9',  
     project_urls={
         'Bug Tracker': 'https://github.com/Chocapikk/LeakPy/issues',
-        'Documentation': 'https://github.com/Chocapikk/LeakPy/wiki',
+        'Documentation': 'https://leakpy.readthedocs.io/',
         'Source Code': 'https://github.com/Chocapikk/LeakPy',
+    },
+    extras_require={
+        'docs': [
+            'sphinx>=5.0.0',
+            'sphinx-rtd-theme>=1.0.0',
+            'myst-parser>=0.18.0',
+        ],
     },
     entry_points={
         'console_scripts': [

@@ -1,234 +1,138 @@
 #!/usr/bin/python3
 
-import sys
 import argparse
+import os
+import platform
+import sys
 import traceback
 
-from . import __version__
-from rich.console import Console
-from .scraper import LeakixScraper
-from collections import defaultdict
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import HTML
-from prompt_toolkit.history import InMemoryHistory
-from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+
+from . import __version__
+from .cli.helpers import (
+    _extract_sample_event,
+    handle_list_fields,
+    handle_list_plugins,
+    normalize_plugins,
+)
+from .logger import setup_logger
+from .scraper import LeakIXScraper
+
+try:
+    from rich.console import Console
+    RICH_AVAILABLE = True
+except ImportError:
+    RICH_AVAILABLE = False
+    Console = None
 
 
-def display_help(console):
-    commands = {
-        "exit": "Exit the interactive mode.",
-        "help": "Display this help menu.",
-        "set": "Set a particular setting. Usage: set <setting_name> <value>",
-        "run": "Run the scraper with the current settings.",
-        "list-fields": "List all possible fields from a sample JSON.",
-        "list-plugins": "List available plugins.",
-        "show": "Display current settings.",
-    }
+def _print_banner(version):
+    """Print ASCII art banner to stderr with colors."""
+    # Cloud art with LeakPy text integrated in the middle
+    banner = f"""
+    ⠀⠀⠀⠀⠀⠀⠀⠀⣀⡤⠴⠢⠤⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⡔⣝⢏⠁⠀⠀⠀⢀⣉⣀⣀⡀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⢀⠤⢉⡩⠟⣓⡿⠁⠀⠀⡖⠁⠀⠀⠀⠀⠀⠉⠳⣄⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⡠⣒⢯⢕⣫⡯⠗⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⡗⡆⠀⠀⠀⠀⠀⠀
+ ⠉⡜⢛⣿⡇⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⡄⠀⠀⠀⠀⠀
+  ⠈⠉⠉⠁⠉⠛⠛⠉⠉⠉⠉⠁⠉⠁⠁⠁⠉⠉⠉⠒⠉⠉⠉⠉⠉
 
-    console.print("[bold yellow]Available Commands:[/bold yellow]")
-    for command, desc in commands.items():
-        console.print(f"[bold cyan]{command.ljust(15)}[/bold cyan]: {desc}")
+                        (v{version})
 
+ __            _   _____     
+|  |   ___ ___| |_|  _  |_ _ 
+|  |__| -_| .'| '_|   __| | |
+|_____|___|__,|_,_|__|  |_  |
+                        |___|
 
-def interactive_mode():
-    console = Console()
-    scraper = LeakixScraper(verbose=True)
+[rgb(255,165,0)]Coded by[/rgb(255,165,0)] [bold rgb(0,191,255)]Chocapikk[/bold rgb(0,191,255)] [rgb(255,165,0)]|[/rgb(255,165,0)] [bold rgb(135,206,250)]Non-official[/bold rgb(135,206,250)] [bold rgb(50,205,50)]LeakIX[/bold rgb(50,205,50)] [rgb(255,165,0)]API client[/rgb(255,165,0)]
 
-    settings = {
-        "scope": "leak",
-        "pages": 2,
-        "query": "",
-        "plugins": None,
-        "output": None,
-        "fields": None,
-        "use_bulk": False,
-    }
-
-    commands = {
-        "show": lambda args: show_command(console, settings),
-        "exit": lambda args: console.print(
-            "[bold green]Exiting interactive mode. Goodbye!"
-        )
-        or "exit",
-        "help": lambda args: display_help(console),
-        "set": lambda args: set_command(console, settings, args),
-        "run": lambda args: scraper.run(
-            settings["scope"],
-            int(settings["pages"]),
-            settings["query"],
-            settings["plugins"],
-            settings["output"],
-            settings["fields"],
-            bool(settings["use_bulk"]),
-        ),
-        "list-fields": lambda args: list_fields_command(console, scraper),
-        "list-plugins": lambda args: list_plugins_command(console, scraper),
-    }
-
-    session = PromptSession(
-        history=InMemoryHistory(), auto_suggest=AutoSuggestFromHistory()
-    )
-
-    console.print("[bold green]Welcome to LeakPy interactive mode!")
-    console.print("[bold blue]Type 'help' for available commands.")
-
-    while True:
-        try:
-            cmd_line = session.prompt(HTML("<bold><magenta>LeakPy > </magenta></bold>"))
-            args = cmd_line.strip().split()
-
-            cmd = args.pop(0).lower() if args else None
-
-            if cmd in commands:
-                result = commands[cmd](args)
-                if result == "exit":
-                    break
-            else:
-                console.print(
-                    f"[bold red]Unknown command: {cmd}. Type 'help' for available commands."
-                )
-
-        except KeyboardInterrupt:
-            console.print(
-                "\n[bold yellow]Interrupted by user. Type 'exit' to leave or 'help' for available commands."
-            )
-
-        except Exception as e:
-            console.print(f"[bold red]Error: {e}")
-
-
-def set_command(console, settings, args):
-    if len(args) >= 2:
-        key = args[0]
-        value = " ".join(args[1:])
-
-        if key == "use_bulk":
-            value = value.lower() == "true"
-
-        if key in settings:
-            settings[key] = value
-            console.print(
-                f"[bold cyan]{key}[/bold cyan] set to [bold magenta]{value}[/bold magenta]."
-            )
-        else:
-            console.print(
-                f"[bold red]Unknown setting: {key}. Use 'show' to view available settings."
-            )
+"""
+    
+    if RICH_AVAILABLE:
+        console = Console(file=sys.stderr, force_terminal=True)
+        lines = banner.split('\n')
+        for line in lines:
+            # Lines with rich markers
+            if '[bold rgb' in line or '[rgb' in line:
+                console.print(line, markup=True)
+                continue
+            # LeakPy ASCII art lines
+            if any(char in line for char in ['|', '_']) and ('__' in line or '|' in line):
+                console.print(line, style="rgb(255,165,0) bold")
+                continue
+            # Cloud lines (default)
+            console.print(line, style="white")
     else:
-        console.print("[bold red]Usage: set <setting_name> <value>")
-
-
-def show_command(console, settings):
-    console.print("\n[bold magenta]Current Settings:[/bold magenta]\n")
-    for key, value in settings.items():
-        console.print(
-            f"[bold cyan]{key}:[/bold cyan][bold magenta] {value}[/bold magenta]"
-        )
-    console.print("\n")
-
-
-def organize_fields(fields):
-    organized = defaultdict(list)
-
-    for field in fields:
-        parts = field.split(".")
-        if len(parts) > 1:
-            organized[parts[0]].append(".".join(parts[1:]))
-        else:
-            organized["general"].append(parts[0])
-
-    return organized
-
-
-def list_fields_command(console, scraper):
-    fields = scraper.list_fields()
-    if fields:
-        organized_fields = organize_fields(fields)
-
-        console.print("\n[bold white]Available Fields:\n[/bold white]")
-        for category, items in organized_fields.items():
-            console.print(f"[bold magenta]{category}[/bold magenta]")
-            for item in items:
-                console.print(f"[bold cyan]- {item}[/bold cyan]")
-            console.print()
-    else:
-        console.print("[bold red]Failed to list fields.[/bold red]")
-
-
-def list_plugins_command(console, scraper):
-    plugins = scraper.get_plugins()
-    if plugins:
-        console.print("\n[bold white]Available Plugins:[/bold white]\n")
-        for plugin in plugins:
-            console.print(f"[bold cyan]- {plugin}[/bold cyan]")
-    else:
-        console.print("[bold red]Failed to list plugins.[/bold red]")
+        # Fallback: strip rich markers if rich is not available
+        import re
+        banner_no_markers = re.sub(r'\[/?[^\]]+\]', '', banner)
+        print(banner_no_markers, file=sys.stderr, end='')
 
 
 def main():
-    console = Console()
-    console.print("[bold magenta][~] LeakPy " + __version__ + "[/bold magenta]")
-
     try:
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "-s",
-            "--scope",
-            choices=["service", "leak"],
-            default="leak",
-            help="Type Of Informations",
-            type=str,
+        parser = argparse.ArgumentParser(
+            description="LeakPy - LeakIX API Client",
+            epilog="""
+Examples:
+  # List available plugins
+  leakpy --list-plugins
+
+  # Search for leaks in France
+  leakpy -q '+country:"France"' -p 5
+
+  # Search with specific plugin
+  leakpy -q '+country:"France"' -P PulseConnectPlugin -p 3
+
+  # Extract specific fields
+  leakpy -q '+country:"France"' -f protocol,ip,port,host
+
+  # Get complete JSON and save to file
+  leakpy -q '+country:"France"' -f full -o results.json
+
+  # Use bulk mode (requires Pro API)
+  leakpy -q '+country:"France"' -b -o results.txt
+
+  # Silent mode for scripting
+  leakpy --silent -q '+country:"France"' -p 5 -o results.txt
+
+For more examples, see: https://leakpy.readthedocs.io/
+            """,
+            formatter_class=argparse.RawDescriptionHelpFormatter
         )
-        parser.add_argument(
-            "-p", "--pages", help="Number Of Pages", default=2, type=int
-        )
-        parser.add_argument(
-            "-q", "--query", help="Specify The Query", default="", type=str
-        )
-        parser.add_argument(
-            "-P", "--plugins", help="Specify The Plugin(s)", type=str, default=None
-        )
-        parser.add_argument("-o", "--output", help="Output File", type=str)
-        parser.add_argument(
-            "-f",
-            "--fields",
-            help="Fields to extract from the JSON, comma-separated. For example: 'protocol,ip,port'",
-            type=str,
-        )
-        parser.add_argument(
-            "-b", "--bulk", action="store_true", help="Activate bulk mode."
-        )
-        parser.add_argument(
-            "-i",
-            "--interactive",
-            action="store_true",
-            help="Activate interactive mode.",
-        )
-        parser.add_argument(
-            "-r", "--reset-api", action="store_true", help="Reset the saved API key"
-        )
-        parser.add_argument(
-            "-lp", "--list-plugins", action="store_true", help="List Available Plugins"
-        )
-        parser.add_argument(
-            "-lf",
-            "--list-fields",
-            action="store_true",
-            help="List all possible fields from a sample JSON",
-        )
-        parser.add_argument(
-            "-v", "--version", action="version", version="LeakPy " + __version__
-        )
+        parser.add_argument("-s", "--scope", choices=["service", "leak"], default="leak", help="Search scope: 'leak' or 'service' (default: leak)", type=str)
+        parser.add_argument("-p", "--pages", help="Number of pages to fetch (default: 2)", default=2, type=int)
+        parser.add_argument("-q", "--query", help="Search query string", default="", type=str)
+        parser.add_argument("-P", "--plugins", help="Plugin(s) to use (comma-separated)", type=str, default=None)
+        parser.add_argument("-o", "--output", help="Output file path", type=str)
+        parser.add_argument("-f", "--fields", help="Fields to extract (comma-separated, e.g. 'protocol,ip,port' or 'full')", type=str)
+        parser.add_argument("-b", "--bulk", action="store_true", help="Use bulk mode (requires Pro API)")
+        parser.add_argument("-r", "--reset-api", action="store_true", help="Reset saved API key")
+        parser.add_argument("--clear-cache", action="store_true", help="Clear the API response cache")
+        parser.add_argument("-lp", "--list-plugins", action="store_true", help="List available plugins")
+        parser.add_argument("-lf", "--list-fields", action="store_true", help="List all possible fields from sample data")
+        parser.add_argument("-v", "--version", action="version", version=f"LeakPy {__version__}")
+        parser.add_argument("--silent", action="store_true", help="Suppress all output (useful for scripting)")
 
         args = parser.parse_args()
 
-        scraper = LeakixScraper(verbose=True)
+        # Set verbose based on silent flag
+        verbose = not args.silent
+        logger = setup_logger("LeakPy", verbose=verbose)
+        silent = args.silent
+        
+        if not silent:
+            _print_banner(__version__)
+
+        scraper = LeakIXScraper(verbose=verbose, silent=silent)
 
         if not scraper.has_api_key():
+            if silent:
+                sys.exit(1)
             session = PromptSession()
-            console.print(
-                "[bold yellow]API key is missing. Please enter your API key to continue.[/bold yellow]"
-            )
+            logger.warning("API key is missing. Please enter your API key to continue.")
             api_key = session.prompt(
                 HTML("<ansibold><ansiwhite>API Key:</ansiwhite></ansibold> "),
                 is_password=True,
@@ -236,59 +140,50 @@ def main():
             scraper.save_api_key(api_key)
 
             if not scraper.has_api_key():
-                console.print(
-                    "[bold red]The provided API key is invalid. It must be 48 characters long.[/bold red]"
-                )
+                logger.error("The provided API key is invalid. It must be 48 characters long.")
                 sys.exit(1)
 
-        if args.interactive:
-            interactive_mode()
-            sys.exit(0)
-
         if args.reset_api:
-            scraper.save_api_key("")
-            console.print("[bold green][+] API key has been reset.")
+            scraper.delete_api_key()
+            if not silent:
+                logger.info("API key has been reset.")
+            sys.exit(0)
+        
+        if args.clear_cache:
+            from .cache import APICache
+            cache = APICache()
+            cache.clear()
+            if not silent:
+                logger.info("Cache cleared.")
             sys.exit(0)
 
         if args.list_plugins:
-            plugins = scraper.get_plugins()
-            console.print(f"[bold yellow][!] Plugins available : {len(plugins)}\n")
-            for plugin in plugins:
-                console.print(f"[bold cyan][+] {plugin}")
+            if silent:
+                for plugin in scraper.get_plugins():
+                    print(plugin)
+            else:
+                handle_list_plugins(logger, scraper)
             sys.exit(0)
 
         if args.list_fields:
-            scraper.verbose = not scraper.verbose
-            sample_data = scraper.query(
-                args.scope, 1, args.query, args.plugins, None, return_data_only=True
-            )
-            scraper.verbose = not scraper.verbose
-
-            if (
-                not sample_data
-                or not isinstance(sample_data, list)
-                or not sample_data[0]
-            ):
-                console.print(
-                    "[bold red][X] Couldn't fetch valid sample data. (Please check your query, scope or plugins)"
-                )
-                sys.exit(1)
-
-            sample_dict = sample_data[0]
-
-            fields = scraper.get_all_fields(sample_dict)
-            console.print(
-                f"[bold yellow][!] Possible fields from sample JSON : {len(fields)}\n"
-            )
-            for field in fields:
-                console.print(f"[bold cyan][+] {field}")
+            if silent:
+                sample_data = scraper.query(args.scope, 1, args.query, args.plugins, None, False, return_data_only=True)
+                sample_event = _extract_sample_event(sample_data)
+                if sample_event:
+                    for field in scraper.get_all_fields(sample_event):
+                        print(field)
+            else:
+                if not handle_list_fields(logger, scraper, args.scope, args.query, args.plugins):
+                    sys.exit(1)
             sys.exit(0)
 
+        # Normalize plugins parameter before passing to scraper.run()
+        normalized_plugins = normalize_plugins(args.plugins)
         scraper.run(
             args.scope,
             args.pages,
             args.query,
-            args.plugins,
+            normalized_plugins,
             args.output,
             args.fields,
             args.bulk,
@@ -296,8 +191,18 @@ def main():
 
     except Exception as e:
         error_message = traceback.format_exc()
-        console.print(f"\n[bold red][X] An error occurred: {e}\n")
-        console.print(f"{error_message}")
+        if not silent:
+            logger.error(f"An error occurred: {e}")
+            logger.error("")
+            logger.error("Please submit an issue at: https://github.com/Chocapikk/LeakPy/issues")
+            logger.error("Include the following information in your issue:")
+            logger.error("")
+            logger.error(f"LeakPy version: {__version__}")
+            logger.error(f"OS: {platform.system()} {platform.release()}")
+            logger.error(f"Python version: {platform.python_version()}")
+            logger.error("")
+            logger.error("Traceback:")
+            logger.error(error_message)
         sys.exit(1)
 
 
