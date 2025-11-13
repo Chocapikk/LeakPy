@@ -11,35 +11,35 @@ Basic Search
 
 .. code-block:: bash
 
-   $ leakpy -q '+country:"France"' -p 5
+   $ leakpy search -q '+country:"France"' -p 5
 
 Search with Plugin
 ~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-   $ leakpy -q '+country:"France"' -P PulseConnectPlugin -p 3
+   $ leakpy search -q '+country:"France"' -P PulseConnectPlugin -p 3
 
 Extract Specific Fields
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-   $ leakpy -q '+country:"France"' -f protocol,ip,port,host
+   $ leakpy search -q '+country:"France"' -f protocol,ip,port,host
 
 Get Complete JSON
 ~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-   $ leakpy -q '+country:"France"' -f full -o results.json
+   $ leakpy search -q '+country:"France"' -f full -o results.json
 
 Bulk Mode
 ~~~~~~~~~
 
 .. code-block:: bash
 
-   $ leakpy -q '+country:"France"' -b -o results.txt
+   $ leakpy search -q '+country:"France"' -b -o results.txt
 
 Silent Mode (Scripting)
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,13 +47,13 @@ Silent Mode (Scripting)
 .. code-block:: bash
 
    # Suppress all logs and progress bars (useful for scripting)
-   $ leakpy --silent -q '+country:"France"' -p 5 -o results.txt
+   $ leakpy --silent search -q '+country:"France"' -p 5 -o results.txt
 
    # List plugins in silent mode (outputs only plugin names, one per line)
-   $ leakpy --silent --list-plugins
+   $ leakpy --silent list plugins
 
    # List fields in silent mode (outputs only field names, one per line)
-   $ leakpy --silent --list-fields -q '+country:"France"'
+   $ leakpy --silent list fields -q '+country:"France"'
 
 Python Library Examples
 -----------------------

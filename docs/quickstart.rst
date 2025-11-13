@@ -21,8 +21,17 @@ When you run LeakPy for the first time without an API key, you'll be prompted to
 .. code-block:: bash
 
    $ leakpy list plugins
-   [2024-01-15 14:30:45] INFO: LeakPy 2.0.0
-   [2024-01-15 14:30:46] WARNING: API key is missing. Please enter your API key to continue.
+   
+      __            _   _____     
+     |  |   ___ ___| |_|  _  |_ _ 
+     |  |__| -_| .'| '_|   __| | | 
+     |_____|___|__,|_,_|__|  |_  |
+                             |___|
+            (v2.0.4)
+   
+   Coded by Chocapikk | Non-official LeakIX API client
+   
+   WARNING: API key is missing. Please enter your API key to continue.
    API Key: [hidden input]
 
 The API key is stored securely using your system's keychain:
