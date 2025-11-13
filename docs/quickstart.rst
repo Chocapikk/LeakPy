@@ -9,11 +9,17 @@ When you run LeakPy for the first time without an API key, you'll be prompted to
 .. code-block:: bash
 
    $ leakpy -lp
-   [2024-01-15 14:30:45] INFO: LeakPy 1.6.7
+   [2024-01-15 14:30:45] INFO: LeakPy 2.0.0
    [2024-01-15 14:30:46] WARNING: API key is missing. Please enter your API key to continue.
    API Key: [hidden input]
 
-The API key will be saved securely in:
+The API key is stored securely using your system's keychain:
+
+* **macOS**: Keychain
+* **Windows**: Credential Manager
+* **Linux**: Secret Service (via keyring)
+
+If keyring is not available, it falls back to file storage with restrictive permissions (600):
 
 * **Linux/macOS**: ``~/.config/LeakPy/api_key.txt``
 * **Windows**: ``%LOCALAPPDATA%\\LeakPy\\api_key.txt``
