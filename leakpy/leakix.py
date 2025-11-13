@@ -744,56 +744,6 @@ class LeakIX:
         # Build query with plugins
         query_param = self.api.build_query_with_plugins(query_param, plugins)
 
-        def get_dedup_key(result, fields):
-            """Generate a deduplication key based on the selected fields."""
-            # Handle l9event objects - convert to dict for key generation
-            if hasattr(result, 'to_dict'):
-                result_dict = result.to_dict()
-            elif isinstance(result, dict):
-                result_dict = result
-            else:
-                return str(result)
-            
-            # If "full" is requested, use event_fingerprint if available, otherwise use the full JSON
-            if fields and "full" in [f.strip() for f in fields.split(",")]:
-                # For full JSON, try to use event_fingerprint as unique identifier
-                if "event_fingerprint" in result_dict:
-                    return result_dict["event_fingerprint"]
-                # Fallback: use the full JSON as unique identifier (most reliable)
-                # This ensures each unique result has a unique key
-                return json.dumps(result_dict, sort_keys=True)
-            
-            # For specific fields, create a key from the selected fields
-            if fields:
-                fields_list = [f.strip() for f in fields.split(",")]
-            else:
-                # Default fields: protocol, ip, port
-                fields_list = ["protocol", "ip", "port"]
-            
-            # Special case: if result has been transformed to URL (default fields case)
-            if "url" in result_dict and fields_list == ["protocol", "ip", "port"]:
-                return result_dict["url"]
-            
-            # Extract values for the selected fields
-            key_values = []
-            for field in fields_list:
-                if field == "url" and "url" in result_dict:
-                    key_values.append(result_dict["url"])
-                elif field in result_dict:
-                    key_values.append(result_dict[field])
-                else:
-                    # For nested fields, try to get the value
-                    try:
-                        keys = field.split(".")
-                        value = result_dict
-                        for k in keys:
-                            value = value[k]
-                        key_values.append(value)
-                    except (KeyError, TypeError):
-                        key_values.append(None)
-            
-            return tuple(key_values)
-        
         def _write_result_to_file(result, output_file, fields):
             """Write a single result to file."""
             try:
@@ -812,35 +762,6 @@ class LeakIX:
             except (IOError, OSError) as e:
                 self.log(f"Error writing to file: {e}", "warning")
                 return False
-        
-        def _process_page_results(page_results, seen_keys, output_file, fields):
-            """
-            Process page results: filter duplicates, write to file, and return unique results.
-            
-            Returns:
-                tuple: (unique_results, new_duplicate_count)
-            """
-            unique_results = []
-            new_duplicates = 0
-            
-            for result in page_results:
-                dedup_key = get_dedup_key(result, fields)
-                if dedup_key not in seen_keys:
-                    seen_keys.add(dedup_key)
-                    unique_results.append(result)
-                    
-                    # Write result to file in real-time
-                    if output_file:
-                        _write_result_to_file(result, output_file, fields)
-                else:
-                    # This is a duplicate
-                    new_duplicates += 1
-            
-            return unique_results, new_duplicates
-
-        # Track seen keys for deduplication
-        seen_keys = set()
-        duplicate_count = 0
         start_time = time.time()
         
         def log_execution_time():
@@ -888,16 +809,13 @@ class LeakIX:
                             # Suppress debug logs during processing
                             results = self.process_and_print_data(data, fields, suppress_debug=True) if data else []
                             
-                            # Process bulk results with deduplication
-                            if results:
-                                unique_results, new_duplicates = _process_page_results(
-                                    results, seen_keys, output_file, fields
-                                )
-                                duplicate_count += new_duplicates
-                                results = unique_results
+                            # Write results to file if needed
+                            if results and output_file:
+                                for result in results:
+                                    _write_result_to_file(result, output_file, fields)
                             
                             if results:
-                                progress.update(task, description=f"[green]✓ Found {len(results)} unique results")
+                                progress.update(task, description=f"[green]✓ Found {len(results)} results")
                             
                             log_execution_time()
                     finally:
@@ -909,13 +827,10 @@ class LeakIX:
                         return data
                     # Suppress debug logs when writing to file
                     results = self.process_and_print_data(data, fields, suppress_debug=bool(output_file)) if data else []
-                    # Process bulk results with deduplication
-                    if results:
-                        unique_results, new_duplicates = _process_page_results(
-                            results, seen_keys, output_file, fields
-                        )
-                        duplicate_count += new_duplicates
-                        results = unique_results
+                    # Write results to file if needed
+                    if results and output_file:
+                        for result in results:
+                            _write_result_to_file(result, output_file, fields)
                 
                 # Restore silent state before showing completion message
                 if output_file:
@@ -923,12 +838,7 @@ class LeakIX:
                 
                 # Show completion message even when writing to file (but only if not silent)
                 if not self.silent and output_file and results:
-                    if duplicate_count > 0:
-                        self.log(f"✓ Completed - {len(results)} unique results ({duplicate_count} duplicates skipped)", "info")
-                    else:
-                        self.log(f"✓ Completed - {len(results)} results", "info")
-                elif duplicate_count > 0 and not self.silent:
-                    self.log(f"Skipped {duplicate_count} duplicate result(s)", "debug")
+                    self.log(f"✓ Completed - {len(results)} results", "info")
                 
                 log_execution_time()
                 return results
@@ -978,18 +888,17 @@ class LeakIX:
                         # Suppress debug logs during processing
                         page_results = self.process_and_print_data(data, fields, suppress_debug=True)
                         
-                        # Process page results (deduplication and file writing)
-                        unique_page_results, new_duplicates = _process_page_results(
-                            page_results, seen_keys, output_file, fields
-                        )
-                        duplicate_count += new_duplicates
-                        results.extend(unique_page_results)
+                        # Process page results and write to file if needed
+                        results.extend(page_results)
+                        if output_file:
+                            for result in page_results:
+                                _write_result_to_file(result, output_file, fields)
                         
                         # Update progress bar
                         progress.update(
                             task, 
                             advance=1,
-                            description=f"[cyan]Fetching pages ({page + 1}/{pages}) - {len(results)} unique results..."
+                            description=f"[cyan]Fetching pages ({page + 1}/{pages}) - {len(results)} results..."
                         )
                         
                         # Only respect rate limit if we made an actual API request
@@ -997,16 +906,10 @@ class LeakIX:
                             time.sleep(1.2)
                     
                     # Final update
-                    if duplicate_count > 0:
-                        progress.update(
-                            task,
-                            description=f"[green]✓ Completed - {len(results)} unique results ({duplicate_count} duplicates skipped)"
-                        )
-                    else:
-                        progress.update(
-                            task,
-                            description=f"[green]✓ Completed - {len(results)} results"
-                        )
+                    progress.update(
+                        task,
+                        description=f"[green]✓ Completed - {len(results)} results"
+                    )
             finally:
                 # Restore original logging level
                 self.logger.setLevel(original_level)
@@ -1019,19 +922,15 @@ class LeakIX:
                 last_data = data
                 page_results = self.process_and_print_data(data, fields)
                 
-                # Process page results (deduplication and file writing)
-                unique_page_results, new_duplicates = _process_page_results(
-                    page_results, seen_keys, output_file, fields
-                )
-                duplicate_count += new_duplicates
-                results.extend(unique_page_results)
+                # Process page results and write to file if needed
+                results.extend(page_results)
+                if output_file:
+                    for result in page_results:
+                        _write_result_to_file(result, output_file, fields)
                 
                 # Only respect rate limit if we made an actual API request
                 if not is_cached:
                     time.sleep(1.2)
-
-        if duplicate_count > 0 and not self.silent:
-            self.log(f"Skipped {duplicate_count} duplicate result(s)", "debug")
 
         log_execution_time()
         return last_data if return_data_only else results

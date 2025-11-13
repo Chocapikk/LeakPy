@@ -27,7 +27,7 @@ When you run LeakPy for the first time without an API key, you'll be prompted to
      |  |__| -_| .'| '_|   __| | | 
      |_____|___|__,|_,_|__|  |_  |
                              |___|
-            (v2.0.4)
+            (v2.0.5)
    
    Coded by Chocapikk | Non-official LeakIX API client
    

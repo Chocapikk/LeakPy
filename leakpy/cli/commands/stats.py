@@ -121,10 +121,18 @@ Examples:
         action='store_true',
         help='Analyze all available fields in the results'
     )
+    query_parser.add_argument(
+        '-b', '--bulk',
+        action='store_true',
+        help='Use bulk mode for faster queries (requires Pro API)'
+    )
     query_parser.epilog = """
 Examples:
   # Analyze query statistics from a live query
   leakpy stats query -q '+country:"France"' -p 5
+
+  # Use bulk mode for faster queries (requires Pro API)
+  leakpy stats query -q '+country:"France"' -p 10 -b
 
   # Analyze statistics from a JSON file
   leakpy stats query -f results.json
@@ -399,7 +407,10 @@ def _display_stat_bar(label, value, max_value, width=40):
     
     filled = int(width * percentage / 100)
     bar = "█" * filled + "░" * (width - filled)
-    return f"{label:20} {bar} {value:6} ({percentage:5.1f}%)"
+    # Truncate label if too long (max 50 chars)
+    if len(label) > 50:
+        label = label[:47] + "..."
+    return f"{label:<50} {bar} {value:>6} ({percentage:>5.1f}%)"
 
 
 def display_query_stats(args, logger, silent, client=None):
@@ -421,7 +432,8 @@ def display_query_stats(args, logger, silent, client=None):
             scope=args.scope,
             pages=args.pages,
             query=args.query,
-            fields="full"
+            fields="full",
+            use_bulk=args.bulk
         )
         # Convert to list if needed
         if not isinstance(results, list):
@@ -470,14 +482,47 @@ def display_query_stats(args, logger, silent, client=None):
         sorted_items = sorted(field_stats.items(), key=lambda x: x[1], reverse=True)[:args.top]
         max_count = sorted_items[0][1] if sorted_items else 1
         
+        # Create a table for better alignment
+        stats_table = Table(show_header=False, box=None, padding=(0, 1))
+        stats_table.add_column("Label", style="yellow", no_wrap=False)
+        stats_table.add_column("Bar", style="cyan", width=40, no_wrap=True)
+        stats_table.add_column("Count", style="white", justify="right", width=6, no_wrap=True)
+        stats_table.add_column("Percentage", style="dim", justify="right", width=10, no_wrap=True)
+        
         for value, count in sorted_items:
+            # Handle list values (e.g., transport field)
+            if isinstance(value, str) and value.startswith('[') and value.endswith(']'):
+                # Try to parse as list representation
+                try:
+                    import ast
+                    parsed_list = ast.literal_eval(value)
+                    if isinstance(parsed_list, list):
+                        # Display each item in the list separately
+                        for item in parsed_list:
+                            label = str(item)
+                            percentage = (count / max_count) * 100 if max_count > 0 else 0
+                            filled = int(40 * percentage / 100) if max_count > 0 else 0
+                            bar = "█" * filled + "░" * (40 - filled)
+                            stats_table.add_row(label, bar, str(count), f"({percentage:5.1f}%)")
+                        continue
+                except (ValueError, SyntaxError):
+                    pass
+            
             # Try to format port numbers nicely
-            if field_name == 'port' and value.isdigit():
+            if field_name == 'port' and isinstance(value, str) and value.isdigit():
                 label = f"Port {value}"
             else:
                 label = str(value)
+                # Truncate very long labels
+                if len(label) > 60:
+                    label = label[:57] + "..."
             
-            console.print(_display_stat_bar(label, count, max_count))
+            percentage = (count / max_count) * 100 if max_count > 0 else 0
+            filled = int(40 * percentage / 100) if max_count > 0 else 0
+            bar = "█" * filled + "░" * (40 - filled)
+            stats_table.add_row(label, bar, str(count), f"({percentage:5.1f}%)")
+        
+        console.print(stats_table)
         console.print()
 
 

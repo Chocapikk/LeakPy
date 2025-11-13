@@ -233,12 +233,22 @@ def analyze_query_results(results, fields_to_analyze=None, all_fields=False):
             value = get_field_value(result, field_spec)
             
             if value is not None:
-                # Convert to string for counting
-                value_str = str(value)
-                if value_str:  # Only count non-empty values
-                    if value_str not in stats['fields'][field_name]:
-                        stats['fields'][field_name][value_str] = 0
-                    stats['fields'][field_name][value_str] += 1
+                # Handle list values - count each item separately
+                if isinstance(value, list):
+                    for item in value:
+                        if item is not None:
+                            item_str = str(item)
+                            if item_str:  # Only count non-empty values
+                                if item_str not in stats['fields'][field_name]:
+                                    stats['fields'][field_name][item_str] = 0
+                                stats['fields'][field_name][item_str] += 1
+                else:
+                    # Convert to string for counting
+                    value_str = str(value)
+                    if value_str:  # Only count non-empty values
+                        if value_str not in stats['fields'][field_name]:
+                            stats['fields'][field_name][value_str] = 0
+                        stats['fields'][field_name][value_str] += 1
     
     # Remove empty fields
     stats['fields'] = {k: v for k, v in stats['fields'].items() if v}

@@ -5,6 +5,19 @@ All notable changes to LeakPy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.5] - 2025-11-13
+
+### Added
+- **Stats Query**: Added bulk mode support (`-b/--bulk`) to `stats query` command for faster queries (requires Pro API)
+
+### Fixed
+- **Stats Query**: Removed broken deduplication logic that was incorrectly filtering results, causing `stats query` to return only 1 result instead of all results
+- **Display**: Improved alignment of statistics output using Rich Table instead of text bars
+
+### Removed
+- **Deduplication**: Removed all deduplication functionality as it was not working correctly and causing issues with query results
+- **API Breaking Change**: Removed `deduplicate` parameter from `LeakIX.search()` and `LeakIX.query()` methods (this parameter never worked correctly)
+
 ## [2.0.4] - 2025-11-13
 
 ### Fixed
