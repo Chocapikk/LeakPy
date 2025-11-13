@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **API Response Caching**: Automatic caching of API responses to reduce unnecessary API calls
-  - Respects HTTP headers (`Cache-Control: max-age` or `Expires`) when available
-  - Default TTL of 5 minutes when headers are not available
+  - Default TTL of 5 minutes
   - New `--clear-cache` CLI option to clear the cache
 - **Silent Mode**: New `--silent` flag for scripting that suppresses all output
 - **Enhanced CLI**: Improved banner with ASCII art and better formatting

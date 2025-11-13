@@ -18,7 +18,7 @@ class APICache:
         Initialize the cache.
         
         Args:
-            ttl (int, optional): Time to live for cache entries in seconds. Defaults to 1 hour.
+            ttl (int, optional): Time to live for cache entries in seconds. Defaults to 5 minutes (300 seconds).
         """
         self.ttl = ttl or self.DEFAULT_TTL
         self.cache_dir = get_config_dir()

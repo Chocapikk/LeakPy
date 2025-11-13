@@ -43,50 +43,6 @@ class LeakIXAPI:
             headers["Accept"] = "application/json"
         return headers
     
-    def _get_cache_ttl_from_response(self, response):
-        """
-        Extract cache TTL from HTTP response headers.
-        
-        Args:
-            response: requests.Response object.
-            
-        Returns:
-            int: TTL in seconds, or None to use default.
-        """
-        if not response:
-            return None
-        
-        # Check Cache-Control header
-        cache_control = response.headers.get('Cache-Control', '')
-        if cache_control:
-            # Parse max-age directive
-            for directive in cache_control.split(','):
-                directive = directive.strip()
-                if directive.startswith('max-age='):
-                    try:
-                        max_age = int(directive.split('=')[1])
-                        return max_age
-                    except (ValueError, IndexError):
-                        pass
-        
-        # Check Expires header
-        expires = response.headers.get('Expires')
-        if expires:
-            try:
-                from email.utils import parsedate_to_datetime
-                from datetime import datetime, timezone
-                expire_time = parsedate_to_datetime(expires)
-                now = datetime.now(timezone.utc)
-                if expire_time.tzinfo is None:
-                    expire_time = expire_time.replace(tzinfo=timezone.utc)
-                delta = (expire_time - now).total_seconds()
-                if delta > 0:
-                    return int(delta)
-            except (ValueError, TypeError):
-                pass
-        
-        return None
-    
     def _make_request(self, endpoint, params=None, stream=False):
         """
         Make a GET request to the API.
@@ -165,7 +121,7 @@ class LeakIXAPI:
             suppress_logs (bool): If True, suppress debug logs.
             
         Returns:
-            dict or None: Response data or None on error.
+            tuple: (dict or None, bool) - Response data or None on error, and whether it was cached.
         """
         params = {"page": str(page), "q": query_param, "scope": scope}
         
@@ -175,7 +131,7 @@ class LeakIXAPI:
             if cached is not None:
                 if not suppress_logs:
                     self.log(f"Query {page + 1} (cached)", "debug")
-                return cached
+                return cached, True
         
         if not suppress_logs:
             self.log(f"Query {page + 1}", "debug")
@@ -183,7 +139,7 @@ class LeakIXAPI:
         response = self._make_request("/search", params=params)
         
         if not response or not response.text:
-            return None
+            return None, False
 
         try:
             data = json.loads(response.text)
@@ -191,18 +147,17 @@ class LeakIXAPI:
             if isinstance(data, dict) and data.get("Error") == "Page limit":
                 msg = f"Error: Page Limit for free users and non users ({page})"
                 self.log(msg, "error")
-                return None
+                return None, False
             
-            # Cache the result with TTL based on Cache-Control header if available
+            # Cache the result (uses default TTL since LeakIX doesn't send cache headers)
             if self.cache:
-                ttl = self._get_cache_ttl_from_response(response)
-                self.cache.set("/search", params, data, ttl=ttl)
+                self.cache.set("/search", params, data)
             
-            return data
+            return data, False
         except json.JSONDecodeError:
             msg = "No more results available (Please check your query or scope)"
             self.log(msg, "warning")
-            return None
+            return None, False
     
     def _process_bulk_lines(self, response):
         """
@@ -255,8 +210,18 @@ class LeakIXAPI:
             suppress_logs (bool): If True, suppress info logs. Defaults to False.
             
         Returns:
-            list: List of events from the bulk response.
+            tuple: (list, bool) - List of events from the bulk response, and whether it was cached.
         """
+        params = {"q": query_param}
+        
+        # Check cache first
+        if self.cache:
+            cached = self.cache.get("/bulk/search", params)
+            if cached is not None:
+                if not suppress_logs:
+                    self.log("Bulk query (cached)", "debug")
+                return cached, True
+        
         if not suppress_logs:
             msg = "Opting for bulk search due to the availability of a Pro API Key."
             self.log(msg, "info")
@@ -265,7 +230,7 @@ class LeakIXAPI:
         try:
             response = requests.get(
                 f"{self.BASE_URL}/bulk/search",
-                params={"q": query_param},
+                params=params,
                 headers=self._get_headers(include_accept=False),
                 stream=True,
             )
@@ -274,9 +239,15 @@ class LeakIXAPI:
             response = None
         
         if not response:
-            return []
+            return [], False
         
-        return self._process_bulk_lines(response)
+        data = self._process_bulk_lines(response)
+        
+        # Cache the result (even if empty, as it's a valid response)
+        if self.cache:
+            self.cache.set("/bulk/search", params, data)
+        
+        return data, False
     
     def build_query_with_plugins(self, query_param, plugins):
         """Build query string with plugin filters."""

@@ -79,7 +79,7 @@ $ leakpy --silent --list-fields -q '+country:"France"'
 
 ### Cache Management
 
-LeakPy automatically caches API responses to reduce unnecessary API calls. The cache respects HTTP headers (`Cache-Control: max-age` or `Expires`) when available, otherwise uses a default TTL of 5 minutes.
+LeakPy automatically caches API responses to reduce unnecessary API calls. The cache uses a default TTL of 5 minutes.
 
 ```bash
 # Clear the cache manually

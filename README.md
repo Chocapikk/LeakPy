@@ -25,7 +25,7 @@ Get your API key from [LeakIX](https://leakix.net/) (48 characters). On first us
 
 **Secure Storage:** The API key is stored securely using your system's keychain (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux). If keyring is not available, it falls back to file storage with restrictive permissions (600).
 
-**API Response Caching:** LeakPy automatically caches API responses to reduce unnecessary API calls. The cache respects HTTP headers (`Cache-Control: max-age` or `Expires`) when available, otherwise uses a default TTL of 5 minutes. Clear the cache with ``leakpy --clear-cache``.
+**API Response Caching:** LeakPy automatically caches API responses to reduce unnecessary API calls. The cache uses a default TTL of 5 minutes. Clear the cache with ``leakpy --clear-cache``.
 
 ## 🖥️ CLI Usage 
 

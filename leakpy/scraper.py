@@ -276,6 +276,13 @@ class LeakIXScraper:
         # Track seen keys for deduplication
         seen_keys = set()
         duplicate_count = 0
+        start_time = time.time()
+        
+        def log_execution_time():
+            """Log execution time if not in silent mode."""
+            if not self.silent:
+                elapsed_time = time.time() - start_time
+                self.log(f"Execution time: {elapsed_time:.2f} seconds", "info")
 
         # Use bulk mode if available and requested
         if self.api.is_api_pro and use_bulk:
@@ -306,12 +313,13 @@ class LeakIXScraper:
                             task = progress.add_task("[cyan]Downloading and processing...", total=None)
                             
                             # Call API without progress (API doesn't handle UI)
-                            data = self.api.query_bulk(query_param, suppress_logs=True)
+                            data, is_cached = self.api.query_bulk(query_param, suppress_logs=True)
                             
                             if data:
                                 progress.update(task, description="[cyan]Processing results...")
                             
                             if return_data_only:
+                                log_execution_time()
                                 return data
                             
                             # Suppress debug logs during processing
@@ -327,11 +335,14 @@ class LeakIXScraper:
                             
                             if results:
                                 progress.update(task, description=f"[green]✓ Found {len(results)} unique results")
+                            
+                            log_execution_time()
                     finally:
                         self.logger.setLevel(original_level)
                 else:
-                    data = self.api.query_bulk(query_param, suppress_logs=bool(output_file))
+                    data, is_cached = self.api.query_bulk(query_param, suppress_logs=bool(output_file))
                     if return_data_only:
+                        log_execution_time()
                         return data
                     # Suppress debug logs when writing to file
                     results = self.process_and_print_data(data, fields, suppress_debug=bool(output_file)) if data else []
@@ -355,6 +366,8 @@ class LeakIXScraper:
                         self.log(f"✓ Completed - {len(results)} results", "info")
                 elif duplicate_count > 0 and not self.silent and not use_progress:
                     self.log(f"Skipped {duplicate_count} duplicate result(s)", "debug")
+                
+                log_execution_time()
                 return results
             finally:
                 # Restore original verbose/silent state
@@ -396,7 +409,8 @@ class LeakIXScraper:
                     )
                     
                     for page in range(pages):
-                        if not (data := self.api.query_search(scope, page, query_param, suppress_logs=True)):
+                        data, is_cached = self.api.query_search(scope, page, query_param, suppress_logs=True)
+                        if not data:
                             break
                         last_data = data
                         # Suppress debug logs during processing
@@ -416,7 +430,9 @@ class LeakIXScraper:
                             description=f"[cyan]Fetching pages ({page + 1}/{pages}) - {len(results)} unique results..."
                         )
                         
-                        time.sleep(1.2)
+                        # Only respect rate limit if we made an actual API request
+                        if not is_cached:
+                            time.sleep(1.2)
                     
                     # Final update
                     if duplicate_count > 0:
@@ -435,7 +451,8 @@ class LeakIXScraper:
         else:
             # No progress bar, use simple logging
             for page in range(pages):
-                if not (data := self.api.query_search(scope, page, query_param)):
+                data, is_cached = self.api.query_search(scope, page, query_param)
+                if not data:
                     break
                 last_data = data
                 page_results = self.process_and_print_data(data, fields)
@@ -447,11 +464,14 @@ class LeakIXScraper:
                 duplicate_count += new_duplicates
                 results.extend(unique_page_results)
                 
-                time.sleep(1.2)
+                # Only respect rate limit if we made an actual API request
+                if not is_cached:
+                    time.sleep(1.2)
 
         if duplicate_count > 0 and not self.silent:
             self.log(f"Skipped {duplicate_count} duplicate result(s)", "debug")
 
+        log_execution_time()
         return last_data if return_data_only else results
 
     def run(
