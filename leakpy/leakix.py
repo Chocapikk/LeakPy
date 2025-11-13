@@ -747,8 +747,8 @@ class LeakIX:
         def get_dedup_key(result, fields):
             """Generate a deduplication key based on the selected fields."""
             # Handle l9event objects - convert to dict for key generation
-            if hasattr(result, '__dict__'):
-                result_dict = result.__dict__()
+            if hasattr(result, 'to_dict'):
+                result_dict = result.to_dict()
             elif isinstance(result, dict):
                 result_dict = result
             else:
