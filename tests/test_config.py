@@ -60,22 +60,26 @@ class TestConfig(unittest.TestCase):
         """Test reading non-existent API key."""
         with tempfile.TemporaryDirectory() as tmpdir:
             original_init = APIKeyManager.__init__
+            original_try_keyring = APIKeyManager._try_keyring_operation
+            
             def mock_init(self):
                 self.api_key_file = Path(tmpdir) / "nonexistent_key.txt"
-                # Initialize _use_keyring attribute
-                try:
-                    import keyring
-                    self._use_keyring = True
-                except ImportError:
-                    self._use_keyring = False
+                # Disable keyring for this test
+                self._use_keyring = False
+            
+            def mock_try_keyring(self, operation, *args, **kwargs):
+                # Always return None to simulate no keyring or empty keyring
+                return None
             
             APIKeyManager.__init__ = mock_init
+            APIKeyManager._try_keyring_operation = mock_try_keyring
             
             manager = APIKeyManager()
             result = manager.read()
             self.assertIsNone(result)
             
             APIKeyManager.__init__ = original_init
+            APIKeyManager._try_keyring_operation = original_try_keyring
 
 
 if __name__ == "__main__":
