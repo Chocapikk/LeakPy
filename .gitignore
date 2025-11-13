@@ -53,3 +53,5 @@ docs/.doctrees/
 
 # Test files
 test/
+test.txt
+results.txt

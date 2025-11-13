@@ -41,5 +41,5 @@ When using LeakPy:
 
 - LeakPy handles sensitive API keys - always use the secure storage mechanisms provided
 - The cache stores API responses locally - be aware of what data is cached
-- Use `--clear-cache` if you need to remove cached data
+- Use `leakpy cache clear` if you need to remove cached data
 

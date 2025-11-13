@@ -48,6 +48,54 @@ jobs:
         fi
         echo "Version match confirmed: $TAG_VERSION"
 
+    - name: Validate CHANGELOG
+      run: |
+        TAG_VERSION="${{ steps.get_version.outputs.version }}"
+        echo "Validating CHANGELOG.md for version $TAG_VERSION..."
+        
+        if [ ! -f CHANGELOG.md ]; then
+          echo "Error: CHANGELOG.md not found"
+          exit 1
+        fi
+        
+        # Check if version section exists
+        if ! grep -q "^## \[$TAG_VERSION\]" CHANGELOG.md; then
+          echo "Error: CHANGELOG.md does not contain a section for version $TAG_VERSION"
+          echo "Expected format: ## [$TAG_VERSION] - YYYY-MM-DD"
+          exit 1
+        fi
+        
+        # Extract the section for this version (escape dots for regex in awk)
+        ESCAPED_VERSION=$(echo "$TAG_VERSION" | sed 's/\./\\./g')
+        # Use awk with proper escaping - match from version header to next version header
+        CHANGELOG_SECTION=$(awk -v version="$ESCAPED_VERSION" '/^## \[/ && $0 ~ "\\[" version "\\]" {found=1} found {print} /^## \[/ && found && $0 !~ "\\[" version "\\]" {exit}' CHANGELOG.md)
+        
+        # Check that section has content (more than just the header)
+        # Count non-empty lines excluding the header
+        CONTENT_LINES=$(echo "$CHANGELOG_SECTION" | sed '/^$/d' | tail -n +2 | wc -l | tr -d ' ')
+        if [ "$CONTENT_LINES" -eq 0 ]; then
+          echo "Error: CHANGELOG.md section for version $TAG_VERSION is empty (no content after header)"
+          exit 1
+        fi
+        
+        # Check for date format (YYYY-MM-DD) in the header line
+        HEADER_LINE=$(echo "$CHANGELOG_SECTION" | head -1)
+        if ! echo "$HEADER_LINE" | grep -qE "^## \[$ESCAPED_VERSION\] - [0-9]{4}-[0-9]{2}-[0-9]{2}"; then
+          echo "Error: CHANGELOG.md section for version $TAG_VERSION has invalid date format"
+          echo "Expected format: ## [$TAG_VERSION] - YYYY-MM-DD"
+          echo "Found: $HEADER_LINE"
+          exit 1
+        fi
+        
+        # Check that section has at least one change category
+        if ! echo "$CHANGELOG_SECTION" | grep -qE "^### (Added|Changed|Deprecated|Removed|Fixed|Security)"; then
+          echo "Error: CHANGELOG.md section for version $TAG_VERSION has no change categories"
+          echo "Expected at least one of: Added, Changed, Deprecated, Removed, Fixed, Security"
+          exit 1
+        fi
+        
+        echo "✓ CHANGELOG.md validation passed for version $TAG_VERSION"
+
     - name: Generate changelog
       id: changelog
       run: |
@@ -65,8 +113,9 @@ jobs:
         # Extract changelog from CHANGELOG.md if it exists
         if [ -f CHANGELOG.md ]; then
           echo "Extracting changelog from CHANGELOG.md for version $TAG_VERSION"
-          # Extract the section for this version
-          CHANGELOG_SECTION=$(awk "/^## \[$TAG_VERSION\]/,/^## \[/" CHANGELOG.md | sed '$d')
+          # Extract the section for this version (use same method as validation)
+          ESCAPED_VERSION=$(echo "$TAG_VERSION" | sed 's/\./\\./g')
+          CHANGELOG_SECTION=$(awk -v version="$ESCAPED_VERSION" '/^## \[/ && $0 ~ "\\[" version "\\]" {found=1} found {print} /^## \[/ && found && $0 !~ "\\[" version "\\]" {exit}' CHANGELOG.md)
           if [ -n "$CHANGELOG_SECTION" ]; then
             CHANGELOG="$CHANGELOG_SECTION"
           fi
@@ -109,7 +158,7 @@ jobs:
         body_path: RELEASE_NOTES.md
         draft: false
         prerelease: false
-        generate_release_notes: true
+        generate_release_notes: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

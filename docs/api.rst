@@ -1,66 +1,204 @@
 API Reference
 =============
 
-This section provides detailed documentation for the LeakPy API.
+This section provides documentation for the main public API of LeakPy.
 
-Main Classes
-------------
+CLI vs Library
+--------------
 
-LeakIXScraper
-~~~~~~~~~~~~~
+**All CLI functionalities are available via the Python library!**
 
-.. autoclass:: leakpy.scraper.LeakIXScraper
+The CLI is essentially a wrapper around the library methods. Here's the complete mapping:
+
++--------------------------------+------------------------------------------+
+| CLI Command                    | Library Method                           |
++================================+==========================================+
+| ``leakpy search``              | ``client.search()``                      |
++--------------------------------+------------------------------------------+
+| ``leakpy lookup host``         | ``client.get_host()``                    |
++--------------------------------+------------------------------------------+
+| ``leakpy lookup domain``       | ``client.get_domain()``                  |
++--------------------------------+------------------------------------------+
+| ``leakpy lookup subdomains``  | ``client.get_subdomains()``              |
++--------------------------------+------------------------------------------+
+| ``leakpy list plugins``        | ``client.get_plugins()``                 |
++--------------------------------+------------------------------------------+
+| ``leakpy list fields``         | ``client.get_all_fields()`` +            |
+|                                | ``client.search()``                      |
++--------------------------------+------------------------------------------+
+| ``leakpy config set``          | ``client.save_api_key()``                |
++--------------------------------+------------------------------------------+
+| ``leakpy cache clear``         | ``client.clear_cache()``                 |
++--------------------------------+------------------------------------------+
+| ``leakpy cache set-ttl``       | ``client.set_cache_ttl(minutes)``        |
++--------------------------------+------------------------------------------+
+| ``leakpy cache show-ttl``      | ``client.get_cache_ttl()``               |
++--------------------------------+------------------------------------------+
+| ``leakpy stats cache``         | ``client.get_cache_stats()``             |
++--------------------------------+------------------------------------------+
+| ``leakpy stats query``         | ``client.analyze_query_stats()``         |
++--------------------------------+------------------------------------------+
+
+**Example:** To get available fields like ``leakpy list fields``:
+
+.. code-block:: python
+
+   from leakpy import LeakIX
+
+   client = LeakIX()
+   results = client.search(
+       scope="leak",
+       query='+country:"France"',
+       pages=1,
+       fields="full"
+   )
+   if results:
+       fields = client.get_all_fields(results[0])
+       for field in sorted(fields):
+           print(field)
+
+LeakIX
+------
+
+The main class for interacting with the LeakIX API.
+
+Initialization
+~~~~~~~~~~~~~~~
+
+.. autoclass:: leakpy.leakix.LeakIX
    :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __init__
+   :exclude-members: log, process_and_print_data, get_all_fields, query
+   :noindex:
 
-LeakIXAPI
-~~~~~~~~~
+Public Methods
+~~~~~~~~~~~~~~
 
-.. autoclass:: leakpy.api.LeakIXAPI
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __init__
+The following methods are the main entry points for using LeakPy:
 
-APIKeyManager
-~~~~~~~~~~~~~
+**search()** - Search LeakIX and return results as ``l9event`` objects. 
+              Optionally write results to a file if ``output`` is specified.
 
-.. autoclass:: leakpy.config.APIKeyManager
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __init__
+.. automethod:: leakpy.leakix.LeakIX.search
 
-Functions
----------
+**get_plugins()** - Get list of available plugins
 
-Parser Functions
-~~~~~~~~~~~~~~~~
+.. automethod:: leakpy.leakix.LeakIX.get_plugins
 
-.. autofunction:: leakpy.parser.extract_data_from_json
+**has_api_key()** - Check if API key is available and valid
 
-.. autofunction:: leakpy.parser.get_all_fields
+.. automethod:: leakpy.leakix.LeakIX.has_api_key
 
-.. autofunction:: leakpy.parser.process_and_format_data
+**save_api_key()** - Save API key securely
 
-Logger Functions
-~~~~~~~~~~~~~~~~
+.. automethod:: leakpy.leakix.LeakIX.save_api_key
 
-.. autofunction:: leakpy.logger.setup_logger
+**delete_api_key()** - Delete stored API key
 
-Config Functions
-~~~~~~~~~~~~~~~~
+.. automethod:: leakpy.leakix.LeakIX.delete_api_key
 
-.. autofunction:: leakpy.config.get_config_dir
+**get_cache_stats()** - Get cache statistics
 
-Cache
-~~~~~
+.. automethod:: leakpy.leakix.LeakIX.get_cache_stats
 
-.. autoclass:: leakpy.cache.APICache
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __init__
+**clear_cache()** - Clear all cache entries
+
+.. automethod:: leakpy.leakix.LeakIX.clear_cache
+
+**get_cache_ttl()** - Get current cache TTL
+
+.. automethod:: leakpy.leakix.LeakIX.get_cache_ttl
+
+**set_cache_ttl()** - Set cache TTL
+
+.. automethod:: leakpy.leakix.LeakIX.set_cache_ttl
+
+**analyze_query_stats()** - Analyze query results and extract statistics
+
+Returns a ``QueryStats`` object with dot notation access (e.g., ``stats.total``, ``stats.fields.protocol.http``).
+
+.. automethod:: leakpy.leakix.LeakIX.analyze_query_stats
+
+**get_host()** - Get host details for a specific IP address
+
+Returns a dictionary with 'Services' and 'Leaks' keys, each containing a list of l9event objects.
+
+.. automethod:: leakpy.leakix.LeakIX.get_host
+
+**get_domain()** - Get domain details for a specific domain name
+
+Returns a dictionary with 'Services' and 'Leaks' keys, each containing a list of l9event objects.
+
+.. automethod:: leakpy.leakix.LeakIX.get_domain
+
+**get_subdomains()** - Get subdomains for a specific domain name
+
+Returns a list of dictionaries containing subdomain information (subdomain, distinct_ips, last_seen).
+
+.. automethod:: leakpy.leakix.LeakIX.get_subdomains
+
+QueryStats Objects
+------------------
+
+Statistics are returned as ``QueryStats`` objects that support dot notation access, similar to ``l9event`` objects.
+
+**Benefits of QueryStats objects:**
+
+* **Dot notation**: ``stats.total`` instead of ``stats['total']``
+* **Nested access**: ``stats.fields.protocol.http`` for nested statistics
+* **No KeyError**: Missing fields return ``None`` instead of raising errors
+* **Object-oriented**: Clean, Pythonic API
+
+.. code-block:: python
+
+   stats = client.analyze_query_stats(results, fields={
+       'country': lambda leak: leak.geoip.country_name if leak.geoip else None,
+       'protocol': lambda leak: leak.protocol
+   })
+   
+   # Access with dot notation
+   print(stats.total)  # Total number of results
+   print(stats.fields.country.France)  # Number of leaks in France
+   print(stats.fields.protocol.http)  # Number of HTTP services
+   
+   # Convert to dict if needed for iteration
+   stats_dict = stats.fields.protocol.to_dict()
+   for protocol, count in stats_dict.items():
+       print(f"{protocol}: {count}")
+
+l9event Objects
+---------------
+
+Results are returned as ``l9event`` objects that support dot notation access. This makes the code much cleaner and more readable than dictionary-style access.
+
+**Benefits of l9event objects:**
+
+* **Dot notation**: ``leak.ip`` instead of ``leak.get('ip')``
+* **No KeyError**: Missing fields return ``None`` instead of raising errors
+* **Nested access**: ``leak.geoip.country_name`` for nested fields
+* **Dictionary compatibility**: Still supports ``.get()`` and ``[]`` notation
+
+.. code-block:: python
+
+   for leak in results:
+       # Access fields with dot notation (recommended)
+       ip = leak.ip
+       port = leak.port
+       protocol = leak.protocol
+       
+       # Nested fields with dot notation
+       if leak.geoip:
+           country = leak.geoip.country_name
+           city = leak.geoip.city_name
+       
+       # Missing fields return None (no KeyError!)
+       missing_field = leak.nonexistent_field  # Returns None
+       
+       # Dictionary-style access also works (for compatibility)
+       host = leak.get('host')
+       host = leak['host']  # Also supported
+       
+       # Convert to dict if needed
+       data = leak.to_dict()
+
+For the complete list of available fields, see the :doc:`fields` page or the official `LeakIX l9format documentation <https://docs.leakix.net/docs/api/l9format/>`_.
 

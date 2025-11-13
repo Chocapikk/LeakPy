@@ -3,6 +3,14 @@
 Welcome to LeakPy's documentation!
 ===================================
 
+.. code-block:: text
+
+   __            _   _____     
+  |  |   ___ ___| |_|  _  |_ _ 
+  |  |__| -_| .'| '_|   __| | | 
+  |_____|___|__,|_,_|__|  |_  | 
+                          |___|
+
 LeakPy is a third-party client designed to seamlessly interact with the LeakIX API using Python.
 
 .. note::
@@ -17,6 +25,7 @@ LeakPy is a third-party client designed to seamlessly interact with the LeakIX A
    cli
    api
    examples
+   fields
    contributing
 
 Indices and tables
@@ -25,4 +34,5 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
 

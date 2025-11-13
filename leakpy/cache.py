@@ -28,7 +28,7 @@ import json
 import hashlib
 import time
 from pathlib import Path
-from .config import get_config_dir
+from .config import get_config_dir, CacheConfig
 
 
 class APICache:
@@ -42,9 +42,18 @@ class APICache:
         Initialize the cache.
         
         Args:
-            ttl (int, optional): Time to live for cache entries in seconds. Defaults to 5 minutes (300 seconds).
+            ttl (int, optional): Time to live for cache entries in seconds. 
+                If None, will try to load from config, otherwise defaults to 5 minutes (300 seconds).
         """
-        self.ttl = ttl or self.DEFAULT_TTL
+        # Try to load TTL from config if not provided
+        if ttl is None:
+            cache_config = CacheConfig()
+            ttl_minutes = cache_config.get_ttl_minutes()
+            if ttl_minutes is not None:
+                ttl = ttl_minutes * 60  # Convert minutes to seconds
+            else:
+                ttl = self.DEFAULT_TTL
+        self.ttl = ttl
         self.cache_dir = get_config_dir()
         self.cache_file = self.cache_dir / self.CACHE_FILE
         self._cache = self._load_cache()

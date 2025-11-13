@@ -22,8 +22,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = "2.0.3"
+"""CLI command modules."""
 
-from .leakix import LeakIX
-
-__all__ = ["LeakIX", "__version__"]

@@ -85,7 +85,11 @@ class LeakIXAPI:
                 params=params,
                 headers=self._get_headers(),
                 stream=stream,
+                timeout=30,  # 30 seconds timeout
             )
+        except requests.Timeout as e:
+            self.log(f"Request timeout: {e}", "error")
+            return None
         except requests.RequestException as e:
             self.log(f"Request error: {e}", "error")
             return None
@@ -224,6 +228,185 @@ class LeakIXAPI:
         except Exception as e:
             self.log(f"Error during bulk query: {e}", "error")
             return []
+    
+    def get_host_details(self, ip, suppress_logs=False):
+        """
+        Get host details for a specific IP address.
+        
+        Args:
+            ip (str): The IP address to query.
+            suppress_logs (bool): If True, suppress info logs. Defaults to False.
+            
+        Returns:
+            tuple: (dict or None, bool) - Host details with 'Services' and 'Leaks' keys, 
+                  and whether it was cached. Returns None on error.
+        """
+        endpoint = f"/host/{ip}"
+        params = {}
+        
+        # Check cache first
+        if self.cache:
+            cached = self.cache.get(endpoint, params)
+            if cached is not None:
+                if not suppress_logs:
+                    self.log(f"Host details for {ip} (cached)", "debug")
+                return cached, True
+        
+        if not suppress_logs:
+            self.log(f"Fetching host details for {ip}...", "info")
+        
+        response = self._make_request(endpoint, params=params)
+        
+        if not response:
+            return None, False
+        
+        try:
+            # Check for rate limiting first
+            if response.status_code == 429:
+                limited_for = response.headers.get('x-limited-for', '60')
+                try:
+                    limited_for = int(limited_for)
+                except (ValueError, TypeError):
+                    limited_for = 60  # Default to 60 seconds
+                self.log(f"Rate limited. Wait {limited_for} before next request.", "warning")
+                # Return a special marker to indicate rate limit
+                return {'_rate_limited': True, '_wait_seconds': limited_for}, False
+            
+            response.raise_for_status()
+            data = json.loads(response.text)
+            
+            # Cache the result
+            if self.cache:
+                self.cache.set(endpoint, params, data)
+            
+            return data, False
+        except requests.HTTPError as e:
+            self.log(f"HTTP error: {e}", "error")
+            return None, False
+        except (requests.RequestException, json.JSONDecodeError) as e:
+            self.log(f"Error fetching host details: {e}", "error")
+            return None, False
+    
+    def get_domain_details(self, domain, suppress_logs=False):
+        """
+        Get domain details for a specific domain name.
+        
+        Args:
+            domain (str): The domain name to query.
+            suppress_logs (bool): If True, suppress info logs. Defaults to False.
+            
+        Returns:
+            tuple: (dict or None, bool) - Domain details with 'Services' and 'Leaks' keys, 
+                  and whether it was cached. Returns None on error.
+        """
+        endpoint = f"/domain/{domain}"
+        params = {}
+        
+        # Check cache first
+        if self.cache:
+            cached = self.cache.get(endpoint, params)
+            if cached is not None:
+                if not suppress_logs:
+                    self.log(f"Domain details for {domain} (cached)", "debug")
+                return cached, True
+        
+        if not suppress_logs:
+            self.log(f"Fetching domain details for {domain}...", "info")
+        
+        response = self._make_request(endpoint, params=params)
+        
+        if not response:
+            return None, False
+        
+        try:
+            # Check for rate limiting first
+            if response.status_code == 429:
+                limited_for = response.headers.get('x-limited-for', '60')
+                try:
+                    limited_for = int(limited_for)
+                except (ValueError, TypeError):
+                    limited_for = 60  # Default to 60 seconds
+                self.log(f"Rate limited. Wait {limited_for} before next request.", "warning")
+                # Return a special marker to indicate rate limit
+                return {'_rate_limited': True, '_wait_seconds': limited_for}, False
+            
+            response.raise_for_status()
+            data = json.loads(response.text)
+            
+            # Cache the result
+            if self.cache:
+                self.cache.set(endpoint, params, data)
+            
+            return data, False
+        except requests.HTTPError as e:
+            self.log(f"HTTP error: {e}", "error")
+            return None, False
+        except (requests.RequestException, json.JSONDecodeError) as e:
+            self.log(f"Error fetching domain details: {e}", "error")
+            return None, False
+    
+    def get_subdomains(self, domain, suppress_logs=False):
+        """
+        Get subdomains for a specific domain name.
+        
+        Args:
+            domain (str): The domain name to query.
+            suppress_logs (bool): If True, suppress info logs. Defaults to False.
+            
+        Returns:
+            tuple: (list or None, bool) - List of subdomain dictionaries, 
+                  and whether it was cached. Returns None on error.
+        """
+        endpoint = f"/api/subdomains/{domain}"
+        params = {}
+        
+        # Check cache first
+        if self.cache:
+            cached = self.cache.get(endpoint, params)
+            if cached is not None:
+                if not suppress_logs:
+                    self.log(f"Subdomains for {domain} (cached)", "debug")
+                return cached, True
+        
+        if not suppress_logs:
+            self.log(f"Fetching subdomains for {domain}...", "info")
+        
+        response = self._make_request(endpoint, params=params)
+        
+        if not response:
+            return None, False
+        
+        try:
+            # Check for rate limiting first
+            if response.status_code == 429:
+                limited_for = response.headers.get('x-limited-for', '60')
+                try:
+                    limited_for = int(limited_for)
+                except (ValueError, TypeError):
+                    limited_for = 60  # Default to 60 seconds
+                self.log(f"Rate limited. Wait {limited_for} before next request.", "warning")
+                # Return a special marker to indicate rate limit
+                return {'_rate_limited': True, '_wait_seconds': limited_for}, False
+            
+            response.raise_for_status()
+            data = json.loads(response.text)
+            
+            # Ensure data is a list
+            if not isinstance(data, list):
+                self.log(f"Unexpected response format for subdomains", "warning")
+                return None, False
+            
+            # Cache the result
+            if self.cache:
+                self.cache.set(endpoint, params, data)
+            
+            return data, False
+        except requests.HTTPError as e:
+            self.log(f"HTTP error: {e}", "error")
+            return None, False
+        except (requests.RequestException, json.JSONDecodeError) as e:
+            self.log(f"Error fetching subdomains: {e}", "error")
+            return None, False
     
     def query_bulk(self, query_param, suppress_logs=False):
         """

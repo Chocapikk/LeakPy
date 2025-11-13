@@ -27,6 +27,66 @@ SOFTWARE.
 from functools import reduce
 
 
+class l9event:
+    """
+    Wrapper class for leak data that allows dot notation access.
+    
+    Example:
+        leak = l9event({"protocol": "http", "ip": "1.2.3.4"})
+        print(leak.protocol)  # "http"
+        print(leak.ip)         # "1.2.3.4"
+    """
+    
+    def __init__(self, data):
+        """
+        Initialize l9event with a dictionary.
+        
+        Args:
+            data (dict): Dictionary containing leak data.
+        """
+        if isinstance(data, dict):
+            # Convert nested dicts to l9event objects recursively
+            for key, value in data.items():
+                if isinstance(value, dict):
+                    setattr(self, key, l9event(value))
+                else:
+                    setattr(self, key, value)
+        else:
+            # If not a dict, store as-is
+            self._data = data
+    
+    def __getattr__(self, name):
+        """Return None for missing attributes instead of raising AttributeError."""
+        return None
+    
+    def __getitem__(self, key):
+        """Allow dictionary-style access."""
+        if isinstance(key, int):
+            # For list-like access, raise TypeError (not a sequence)
+            raise TypeError("'l9event' object is not subscriptable with integer indices")
+        return getattr(self, key, None)
+    
+    def get(self, key, default=None):
+        """Dictionary-style get method."""
+        return getattr(self, key, default)
+    
+    def __repr__(self):
+        """String representation of the l9event."""
+        attrs = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        return f"l9event({attrs})"
+    
+    def to_dict(self):
+        """Return dictionary representation."""
+        result = {}
+        for key, value in self.__dict__.items():
+            if not key.startswith('_'):
+                if isinstance(value, l9event):
+                    result[key] = value.to_dict()
+                else:
+                    result[key] = value
+        return result
+
+
 def _get_nested_value(obj, keys):
     """Get a nested value from a dictionary using dot-separated keys."""
     try:
@@ -38,12 +98,26 @@ def _get_nested_value(obj, keys):
 def _extract_from_single_entry(entry, fields_list):
     """Extract fields from a single entry (event)."""
     if isinstance(entry, str):
-        return {"message": entry}
+        return l9event({"message": entry})
 
-    extracted_data = {
-        field: _get_nested_value(entry, field.split(".")) 
-        for field in fields_list
-    }
+    # Build nested structure for fields with dots
+    extracted_data = {}
+    for field in fields_list:
+        value = _get_nested_value(entry, field.split("."))
+        # If field has dots, create nested structure
+        if "." in field:
+            parts = field.split(".")
+            current = extracted_data
+            # Create nested dict structure
+            for part in parts[:-1]:
+                if part not in current:
+                    current[part] = {}
+                current = current[part]
+            # Set the final value
+            current[parts[-1]] = value
+        else:
+            # Simple field, add directly
+            extracted_data[field] = value
 
     # Special handling for default fields: create URL if protocol is http/https
     if fields_list == ["protocol", "ip", "port"]:
@@ -51,21 +125,23 @@ def _extract_from_single_entry(entry, fields_list):
         ip = extracted_data.get("ip", "")
         port = extracted_data.get("port", "")
         if protocol in ("http", "https"):
-            return {"url": f"{protocol}://{ip}:{port}"}
+            return l9event({"url": f"{protocol}://{ip}:{port}"})
 
-    return extracted_data
+    return l9event(extracted_data)
 
 
 def _handle_full_fields(data, fields_list):
-    """Handle the 'full' field request - return data as-is."""
+    """Handle the 'full' field request - return data as l9event objects."""
     if isinstance(data, list):
-        return data
+        return [l9event(item) if isinstance(item, dict) else item for item in data]
     
     events = data.get("events") if isinstance(data, dict) else None
     if isinstance(events, list):
-        return events
+        return [l9event(item) if isinstance(item, dict) else item for item in events]
     
-    return data if isinstance(data, dict) else [data]
+    if isinstance(data, dict):
+        return l9event(data)
+    return [data]
 
 
 def extract_data_from_json(data, fields):
@@ -114,8 +190,13 @@ def _log_result_items(result, logger):
     """Log result items if logger is provided."""
     if logger and isinstance(result, list):
         for item in result:
-            if isinstance(item, dict):
-                logger(f"{', '.join(f'{k}: {v}' for k, v in item.items())}", "debug")
+            if isinstance(item, (dict, l9event)):
+                # Handle both dict and l9event objects
+                if isinstance(item, l9event):
+                    attrs = {k: v for k, v in item.__dict__.items() if not k.startswith('_')}
+                    logger(f"{', '.join(f'{k}: {v}' for k, v in attrs.items())}", "debug")
+                else:
+                    logger(f"{', '.join(f'{k}: {v}' for k, v in item.items())}", "debug")
 
 
 def process_and_format_data(data, fields, logger=None):

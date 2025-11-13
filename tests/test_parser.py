@@ -15,7 +15,8 @@ class TestParser(unittest.TestCase):
             ]
         }
         result = extract_data_from_json(data, None)
-        self.assertEqual(result, [{"url": "http://1.2.3.4:80"}])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].to_dict(), {"url": "http://1.2.3.4:80"})
 
     def test_extract_data_custom_fields(self):
         """Test extraction with custom fields."""
@@ -25,7 +26,8 @@ class TestParser(unittest.TestCase):
             ]
         }
         result = extract_data_from_json(data, "protocol,host")
-        self.assertEqual(result, [{"protocol": "http", "host": "example.com"}])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].to_dict(), {"protocol": "http", "host": "example.com"})
 
     def test_extract_data_full(self):
         """Test extraction with 'full' option."""
@@ -35,7 +37,8 @@ class TestParser(unittest.TestCase):
             ]
         }
         result = extract_data_from_json(data, "full")
-        self.assertEqual(result, [{"protocol": "http", "ip": "1.2.3.4", "port": 80, "extra": "data"}])
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].to_dict(), {"protocol": "http", "ip": "1.2.3.4", "port": 80, "extra": "data"})
 
     def test_extract_data_nested_fields(self):
         """Test extraction with nested fields."""
@@ -45,7 +48,10 @@ class TestParser(unittest.TestCase):
             ]
         }
         result = extract_data_from_json(data, "nested.field,simple")
-        self.assertEqual(result, [{"nested.field": "value", "simple": "test"}])
+        self.assertEqual(len(result), 1)
+        # With nested structure, dataset.field becomes dataset.field nested
+        self.assertEqual(result[0].simple, "test")
+        self.assertEqual(result[0].nested.field, "value")
 
     def test_extract_data_missing_fields(self):
         """Test extraction with missing fields."""
@@ -55,9 +61,9 @@ class TestParser(unittest.TestCase):
             ]
         }
         result = extract_data_from_json(data, "protocol,port,missing")
-        self.assertEqual(result[0]["protocol"], "http")
-        self.assertEqual(result[0]["port"], "N/A")
-        self.assertEqual(result[0]["missing"], "N/A")
+        self.assertEqual(result[0].protocol, "http")
+        self.assertEqual(result[0].port, "N/A")
+        self.assertEqual(result[0].missing, "N/A")
 
     def test_get_all_fields(self):
         """Test getting all fields from nested dictionary."""
@@ -91,8 +97,8 @@ class TestParser(unittest.TestCase):
         }
         result = process_and_format_data(data, "protocol,ip")
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["protocol"], "http")
-        self.assertEqual(result[0]["ip"], "1.2.3.4")
+        self.assertEqual(result[0].protocol, "http")
+        self.assertEqual(result[0].ip, "1.2.3.4")
 
     def test_process_and_format_data_full(self):
         """Test process_and_format_data with full option."""
@@ -103,11 +109,13 @@ class TestParser(unittest.TestCase):
         }
         result = process_and_format_data(data, "full")
         self.assertEqual(len(result), 1)
-        self.assertIn("protocol", result[0])
-        self.assertIn("ip", result[0])
-        self.assertIn("port", result[0])
+        # Check that attributes exist using hasattr or direct access
+        self.assertIsNotNone(result[0].protocol)
+        self.assertIsNotNone(result[0].ip)
+        self.assertIsNotNone(result[0].port)
 
 
 if __name__ == "__main__":
     unittest.main()
+
 

@@ -173,3 +173,46 @@ class APIKeyManager:
         """Check if an API key is valid (48 characters)."""
         return bool(api_key) and len(api_key) == 48
 
+
+class CacheConfig:
+    """Manages cache configuration (TTL)."""
+    
+    CONFIG_FILE = "cache_config.json"
+    
+    def __init__(self):
+        """Initialize the cache configuration manager."""
+        self.config_dir = get_config_dir()
+        self.config_file = self.config_dir / self.CONFIG_FILE
+    
+    def _read_config(self):
+        """Read configuration from file."""
+        try:
+            if self.config_file.exists():
+                import json
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except (IOError, json.JSONDecodeError):
+            pass
+        return {}
+    
+    def _write_config(self, config):
+        """Write configuration to file."""
+        try:
+            import json
+            self.config_dir.mkdir(parents=True, exist_ok=True)
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2)
+        except (IOError, OSError):
+            pass
+    
+    def get_ttl_minutes(self):
+        """Get the configured TTL in minutes, or None if not set."""
+        config = self._read_config()
+        return config.get('ttl_minutes')
+    
+    def set_ttl_minutes(self, minutes):
+        """Set the TTL in minutes."""
+        config = self._read_config()
+        config['ttl_minutes'] = minutes
+        self._write_config(config)
+

@@ -24,13 +24,9 @@ SOFTWARE.
 
 """Helper functions for the CLI interface."""
 
-try:
-    from rich.console import Console
-    from rich.table import Table
-    from rich import box
-    RICH_AVAILABLE = True
-except ImportError:
-    RICH_AVAILABLE = False
+from rich.console import Console
+from rich.table import Table
+from rich import box
 
 
 def handle_list_plugins(logger, scraper):
@@ -43,26 +39,21 @@ def handle_list_plugins(logger, scraper):
     logger.info(f"Plugins available: {len(plugins)}")
     
     # Use rich table for better formatting
-    if RICH_AVAILABLE:
-        console = Console()
-        table = Table(show_header=True, header_style="bold cyan", box=box.ROUNDED)
-        table.add_column("Plugin Name", style="white")
-        
-        # Display plugins in a single column for better readability
-        for plugin in sorted(plugins):
-            table.add_row(plugin)
-        
-        console.print(table)
-    else:
-        # Fallback to simple list
-        for plugin in sorted(plugins):
-            logger.info(f"  - {plugin}")
+    console = Console()
+    table = Table(show_header=True, header_style="bold cyan", box=box.ROUNDED)
+    table.add_column("Plugin Name", style="white")
+    
+    # Display plugins in a single column for better readability
+    for plugin in sorted(plugins):
+        table.add_row(plugin)
+    
+    console.print(table)
     
     return True
 
 
 def format_fields_display(fields, use_rich=True):
-    """Format fields for better display, optionally using rich."""
+    """Format fields for better display using rich."""
     if not fields:
         return []
     
@@ -83,7 +74,7 @@ def format_fields_display(fields, use_rich=True):
     # Sort categories
     sorted_categories = sorted(categories.items())
     
-    if use_rich and RICH_AVAILABLE:
+    if use_rich:
         # Use rich table for better formatting
         console = Console()
         table = Table(show_header=True, header_style="bold cyan", box=box.ROUNDED)
@@ -150,10 +141,7 @@ def _extract_sample_event(sample_data):
 
 def handle_list_fields(logger, scraper, scope="leak", query="", plugins=None):
     """Helper function to list fields."""
-    # Temporarily disable verbose to avoid showing query results
-    original_verbose = scraper.verbose
-    scraper.verbose = False
-    # Also suppress logs during query
+    # Temporarily disable output to avoid showing query results
     original_silent = scraper.silent
     scraper.silent = True
     # Temporarily disable logger handlers to prevent all logs
@@ -168,7 +156,6 @@ def handle_list_fields(logger, scraper, scope="leak", query="", plugins=None):
     try:
         sample_data = scraper.query(scope, 1, query, plugins, None, False, return_data_only=True)
     finally:
-        scraper.verbose = original_verbose
         scraper.silent = original_silent
         scraper.logger.setLevel(original_logger_level)
         # Restore handlers
@@ -185,11 +172,7 @@ def handle_list_fields(logger, scraper, scope="leak", query="", plugins=None):
     logger.info(f"Possible fields from sample JSON: {len(fields)}")
     
     # Format and display fields
-    formatted = format_fields_display(fields, use_rich=True)
-    if not formatted:
-        # Fallback to simple list if rich formatting failed
-        for field in fields:
-            logger.info(f"  - {field}")
+    format_fields_display(fields, use_rich=True)
     
     return True
 

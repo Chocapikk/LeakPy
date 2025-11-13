@@ -46,7 +46,7 @@ jobs:
 
     - name: Test module imports
       run: |
-        python -c "from leakpy.scraper import LeakIXScraper; from leakpy.parser import extract_data_from_json; from leakpy.config import APIKeyManager; from leakpy.logger import setup_logger; from leakpy.api import LeakIXAPI; print('All imports OK')"
+        python -c "from leakpy.leakix import LeakIX; from leakpy.parser import extract_data_from_json, get_all_fields; from leakpy.config import APIKeyManager; from leakpy.logger import setup_logger; from leakpy.api import LeakIXAPI; print('All imports OK')"
 
   docs:
     name: Build Documentation
