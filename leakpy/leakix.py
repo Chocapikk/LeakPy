@@ -243,21 +243,24 @@ class LeakIX:
                   Access with: stats.fields.protocol, stats.fields.port, etc.
         
         Examples:
-            # Using string field paths (backward compatible)
-            >>> stats = client.analyze_query_stats(results, fields='protocol,port')
+            Using string field paths::
             
-            # Using object-oriented approach with callables
-            >>> stats = client.analyze_query_stats(results, fields={
-            ...     'country': lambda leak: leak.geoip.country_name if leak.geoip else None,
-            ...     'protocol': lambda leak: leak.protocol,
-            ...     'port': lambda leak: leak.port
-            ... })
+                stats = client.analyze_query_stats(results, fields='protocol,port')
             
-            # Using list of callables
-            >>> stats = client.analyze_query_stats(results, fields=[
-            ...     lambda leak: leak.protocol,
-            ...     lambda leak: leak.geoip.country_name if leak.geoip else None
-            ... ])
+            Using object-oriented approach with callables::
+            
+                stats = client.analyze_query_stats(results, fields={
+                    'country': lambda leak: leak.geoip.country_name if leak.geoip else None,
+                    'protocol': lambda leak: leak.protocol,
+                    'port': lambda leak: leak.port
+                })
+            
+            Using list of callables::
+            
+                stats = client.analyze_query_stats(results, fields=[
+                    lambda leak: leak.protocol,
+                    lambda leak: leak.geoip.country_name if leak.geoip else None
+                ])
         """
         from .stats import analyze_query_results
         
