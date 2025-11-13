@@ -759,10 +759,9 @@ class LeakIX:
                 # For full JSON, try to use event_fingerprint as unique identifier
                 if "event_fingerprint" in result_dict:
                     return result_dict["event_fingerprint"]
-                # Fallback: use a combination of key fields that should be unique
-                key_fields = ["ip", "port", "host", "event_type", "event_source", "time"]
-                key_values = tuple(result_dict.get(k) for k in key_fields if k in result_dict)
-                return str(key_values) if any(key_values) else json.dumps(result_dict, sort_keys=True)
+                # Fallback: use the full JSON as unique identifier (most reliable)
+                # This ensures each unique result has a unique key
+                return json.dumps(result_dict, sort_keys=True)
             
             # For specific fields, create a key from the selected fields
             if fields:
