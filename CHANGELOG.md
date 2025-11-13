@@ -5,6 +5,16 @@ All notable changes to LeakPy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2025-11-13
+
+### Fixed
+- **Cache Support for Bulk Queries**: Fixed missing cache support for bulk mode queries, which was causing unnecessary API calls even when data was already cached
+- **Cache Performance**: Improved cache performance by removing unused HTTP header parsing code (LeakIX doesn't send cache headers)
+
+### Changed
+- **Code Cleanup**: Removed unused `_get_cache_ttl_from_response()` method and simplified cache implementation
+- **Documentation**: Updated documentation to accurately reflect cache behavior (default TTL of 5 minutes, no HTTP header support)
+
 ## [2.0.1] - 2025-11-13
 
 ### Fixed
