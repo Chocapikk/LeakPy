@@ -6,7 +6,7 @@ We welcome contributions to LeakPy! This document provides guidelines for contri
 Getting Started
 ---------------
 
-1. Fork the repository
+1. Fork the repository: https://github.com/Chocapikk/LeakPy
 2. Clone your fork: ``git clone https://github.com/yourusername/LeakPy.git``
 3. Create a branch: ``git checkout -b feature/your-feature-name``
 4. Make your changes
@@ -49,3 +49,7 @@ When reporting issues, please include:
 * Actual behavior
 * Error messages (if any)
 
+Questions?
+----------
+
+Feel free to open an issue on `GitHub <https://github.com/Chocapikk/LeakPy/issues>`_ if you have any questions or need help.
