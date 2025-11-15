@@ -5,7 +5,7 @@ All notable changes to LeakPy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.2.0] - 2025-01-XX
+## [2.2.0] - 2025-11-15
 
 ### Changed
 - **Major code refactoring**: Refactored `helpers.py` into modular `helpers/` directory structure
@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Empty L9Event display**: Fixed `L9Event(None)` being printed by returning empty string in `_EmptyL9Event.__str__` and `__repr__`
 - **HTTP status codes**: Replaced hardcoded status codes (429, 400) with `requests.codes` constants
 - **CLI flags**: Ensured `--raw` and `--silent` flags are correctly placed before subcommands in all examples
+- **Dependencies**: Fixed `emoji-country-flag` version requirement (changed from `>=2.1.0` to `>=1.3.2` for Python 3.9 compatibility)
 
 ### Removed
 - **Backward compatibility**: Removed `helpers.py` compatibility file (direct imports to `helpers/` package now required)
