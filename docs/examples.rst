@@ -71,6 +71,18 @@ Lookup:
    for subdomain in subdomains:
        print(subdomain.subdomain)
 
+List Available Fields:
+
+.. code-block:: python
+
+   from leakpy import LeakIX
+   client = LeakIX()
+
+   # Get all available fields from schema (no API call needed)
+   fields = client.get_all_fields()
+   for field in sorted(fields):
+       print(field)
+
 Statistics:
 
 .. code-block:: python

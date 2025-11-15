@@ -6,7 +6,7 @@ LeakIX Class
 
 .. autoclass:: leakpy.leakix.LeakIX
    :members: search, get_host, get_domain, get_subdomains, get_plugins, 
-             has_api_key, save_api_key, delete_api_key,
+             get_all_fields, has_api_key, save_api_key, delete_api_key,
              get_cache_stats, clear_cache, get_cache_ttl, set_cache_ttl,
              analyze_query_stats
    :noindex:

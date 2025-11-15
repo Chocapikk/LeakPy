@@ -10,7 +10,20 @@ LeakPy supports 70 fields organized by category. All events are returned as ``L9
 Accessing Fields
 ----------------
 
-Use ``search()`` to get events as ``L9Event`` objects:
+Get all available fields from the schema (no API call needed):
+
+.. code-block:: python
+
+   from leakpy import LeakIX
+
+   client = LeakIX()
+   
+   # Get all fields from schema (no API call needed)
+   fields = client.get_all_fields()
+   for field in sorted(fields):
+       print(field)
+
+Or use ``search()`` to get events as ``L9Event`` objects:
 
 .. code-block:: python
 

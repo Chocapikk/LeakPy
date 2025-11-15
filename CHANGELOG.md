@@ -5,6 +5,17 @@ All notable changes to LeakPy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2025-11-15
+
+### Added
+- **Improved `get_all_fields()` method**: Can now be called without parameters to get all fields from l9format schema (no API call needed)
+  - When called without data: returns all 82+ fields from the schema
+  - When called with data: extracts fields from that specific event (backward compatible)
+  - No API key required when called without data
+
+### Changed
+- **Documentation updates**: Updated README, EXAMPLES.md, and RTD documentation to show the simplified usage of `get_all_fields()`
+
 ## [2.2.0] - 2025-11-15
 
 ### Changed
