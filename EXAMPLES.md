@@ -236,7 +236,12 @@ from leakpy import LeakIX
 
 client = LeakIX()
 
-# Get a sample event
+# Get all available fields from schema (no API call needed)
+fields = client.get_all_fields()
+for field in sorted(fields):
+    print(field)
+
+# Or get fields from a specific event
 events = client.search(
     scope="leak",
     query='+country:"France"',
@@ -244,7 +249,6 @@ events = client.search(
     fields="full"
 )
 
-# Get all available fields
 if events:
     fields = client.get_all_fields(events[0])
     for field in sorted(fields):

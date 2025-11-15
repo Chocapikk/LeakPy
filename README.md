@@ -112,6 +112,13 @@ For detailed CLI documentation, see the `docs/cli.rst` file or run ``leakpy COMM
 from leakpy import LeakIX
 
 client = LeakIX()
+
+# Get all fields from schema (no API call needed)
+fields = client.get_all_fields()
+for field in sorted(fields):
+    print(field)
+
+# Or get fields from a specific event
 results = client.search(scope="leak", query='+country:"France"', pages=1, fields="full")
 if results:
     fields = client.get_all_fields(results[0])

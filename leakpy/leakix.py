@@ -538,17 +538,34 @@ class LeakIX:
             return process_and_format_data(data, fields, None)  # Pass None to disable logging
         return process_and_format_data(data, fields, self.log)
 
-    def get_all_fields(self, data, current_path=None):
+    def get_all_fields(self, data=None, current_path=None):
         """
-        Recursively retrieve all field paths from a nested dictionary.
+        Get all available field paths.
+        
+        If no data is provided, returns all fields from the l9format schema
+        (no API call needed). If data is provided, extracts fields from that data.
 
         Args:
-            data (dict): The nested dictionary to extract field paths from.
+            data (dict, optional): The nested dictionary to extract field paths from.
+                                  If None, returns all fields from l9format schema.
             current_path (list, optional): Current path being traversed. Defaults to None.
 
         Returns:
             list[str]: A list of field paths sorted alphabetically.
+            
+        Examples:
+            # Get all fields from schema (no API call needed)
+            fields = client.get_all_fields()
+            
+            # Get fields from a specific event
+            results = client.search(scope="leak", query='+country:"France"', pages=1)
+            if results:
+                fields = client.get_all_fields(results[0])
         """
+        if data is None:
+            # Return fields from l9format schema (no API call needed)
+            return helpers.get_all_fields_from_l9format_schema()
+        # Extract fields from provided data
         return helpers.get_all_fields_from_dict(data, current_path)
 
     @helpers.require_api_key
