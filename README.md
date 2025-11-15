@@ -73,6 +73,9 @@ $ leakpy lookup subdomains leakix.net
 # List plugins
 $ leakpy list plugins
 
+# List available fields
+$ leakpy list fields
+
 # Configure API key
 $ leakpy config set
 
@@ -339,7 +342,18 @@ print(f"Found {len(all_stats.fields.to_dict())} different field types")
 
 **Available Fields:**
 
-LeakPy supports 71+ fields organized by category. The field structure follows the official `l9format schema <https://docs.leakix.net/docs/api/l9format/>`_ from LeakIX:
+LeakPy supports 82+ fields organized by category. Get all available fields:
+
+```python
+from leakpy import LeakIX
+
+client = LeakIX()
+fields = client.get_all_fields()  # No API call needed
+for field in sorted(fields):
+    print(field)
+```
+
+The field structure follows the official `l9format schema <https://docs.leakix.net/docs/api/l9format/>`_ from LeakIX:
 - **Root**: `ip`, `port`, `protocol`, `host`, `event_type`, etc.
 - **GeoIP**: `geoip.country_name`, `geoip.city_name`, `geoip.location.lat`, etc.
 - **HTTP**: `http.status`, `http.title`, `http.header.server`, etc.
