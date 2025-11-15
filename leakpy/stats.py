@@ -65,7 +65,8 @@ class QueryStats:
     
     def _is_private_attr(self, key):
         """Check if attribute key is private."""
-        return key.startswith(helpers._PRIVATE_PREFIX)
+        from .helpers.constants import _PRIVATE_PREFIX
+        return key.startswith(_PRIVATE_PREFIX)
     
     def _get_public_attrs(self):
         """Get public attributes (excluding private ones)."""
@@ -77,7 +78,8 @@ class QueryStats:
     
     def __getattr__(self, name):
         """Return empty QueryStats for missing attributes to allow chaining."""
-        if name in helpers._STATS_DICT_LIKE_METHODS:
+        from .helpers.constants import _STATS_DICT_LIKE_METHODS
+        if name in _STATS_DICT_LIKE_METHODS:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'. Use dot notation instead (e.g., stats.total instead of stats['total']).")
         return self._get_empty()
     

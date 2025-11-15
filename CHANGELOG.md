@@ -5,6 +5,42 @@ All notable changes to LeakPy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-01-XX
+
+### Changed
+- **Major code refactoring**: Refactored `helpers.py` into modular `helpers/` directory structure
+  - Separated helper functions into logical modules by theme (batch, bulk, cache, CLI execution, config, data, display, fetch, fields, files, logging, lookup, schema, etc.)
+  - Reduced code duplication through extensive DRY (Don't Repeat Yourself) refactoring
+  - Applied decorators for error handling, file operations, and API key requirements
+  - Replaced custom parsing functions with Python built-ins (`int()`, `json.loads()`, `getattr()`)
+  - Optimized list comprehensions and processing loops for better performance
+  - Inlined single-use helper functions into their callers
+  - Consolidated related functions into appropriate modules (e.g., statistics utilities, file operations)
+- **Code organization improvements**:
+  - Moved CLI execution functions to `cli_execution.py`
+  - Moved display functions to `display.py`
+  - Moved file operations to `file_operations.py`
+  - Moved statistics processing to `data_utils.py`
+  - Removed empty and redundant files (`formatting.py`, `http.py`, `api_parsing.py`, `statistics_utils.py`, `stats_command.py`)
+- **Import optimization**: Simplified imports in `helpers/__init__.py` using `from .module import *`
+- **Documentation improvements**: Fixed code examples to be self-contained and executable
+- **Test improvements**: Moved `test_commands.sh` to `tests/` directory and fixed mock paths
+
+### Fixed
+- **Import errors**: Fixed circular imports and missing constant imports by using direct imports from `helpers.constants`
+- **Mock paths**: Corrected mock targets in unit tests (`leakpy.helpers.fetch.make_api_request`, `leakpy.helpers.lookup.Console`)
+- **Documentation examples**: Fixed `NameError` in documentation by adding necessary imports and client initialization
+- **Output formatting**: Fixed SSH URLs being displayed as URLs in documentation examples (now shown as `PROTOCOL IP:PORT`)
+- **Empty L9Event display**: Fixed `L9Event(None)` being printed by returning empty string in `_EmptyL9Event.__str__` and `__repr__`
+- **HTTP status codes**: Replaced hardcoded status codes (429, 400) with `requests.codes` constants
+- **CLI flags**: Ensured `--raw` and `--silent` flags are correctly placed before subcommands in all examples
+
+### Removed
+- **Backward compatibility**: Removed `helpers.py` compatibility file (direct imports to `helpers/` package now required)
+- **Redundant files**: Removed empty and single-function files after inlining and consolidation
+- **Unused functions**: Removed `display_stat_bar` and other unused helper functions
+- **Test result files**: Removed unnecessary test output files from project root
+
 ## [2.1.0] - 2025-11-15
 
 ### Added

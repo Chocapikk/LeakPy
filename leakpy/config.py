@@ -28,6 +28,12 @@ from pathlib import Path
 
 from . import helpers
 
+# Try to import keyring for secure storage
+try:
+    import keyring  # type: ignore
+except ImportError:
+    keyring = None  # type: ignore
+
 
 class APIKeyManager:
     """Manages API key storage and retrieval with secure storage support."""
@@ -39,7 +45,7 @@ class APIKeyManager:
         """Initialize the API key manager."""
         config_dir = helpers.get_config_dir()
         self.api_key_file = config_dir / "api_key.txt"
-        self._use_keyring = helpers.KEYRING_AVAILABLE
+        self._use_keyring = keyring is not None
     
     
     
@@ -73,10 +79,10 @@ class APIKeyManager:
     
     def _save_to_keyring(self, api_key):
         """Save API key to keyring if available."""
-        if not helpers.keyring:
+        if not keyring:
             return False
         return self._try_keyring_operation(
-            helpers.keyring.set_password, self.SERVICE_NAME, self.USERNAME, api_key
+            keyring.set_password, self.SERVICE_NAME, self.USERNAME, api_key
         ) is not None
     
     def save(self, api_key):
@@ -94,10 +100,10 @@ class APIKeyManager:
     
     def _read_from_keyring(self):
         """Read API key from keyring if available."""
-        if not self._use_keyring or not helpers.keyring:
+        if not self._use_keyring or not keyring:
             return None
         key = self._try_keyring_operation(
-            helpers.keyring.get_password, self.SERVICE_NAME, self.USERNAME
+            keyring.get_password, self.SERVICE_NAME, self.USERNAME
         )
         return key.strip() if key else None
     
@@ -121,9 +127,9 @@ class APIKeyManager:
     @helpers.handle_exceptions(default_return=None, exception_types=(Exception,))
     def _delete_from_keyring(self):
         """Delete API key from keyring if available."""
-        if not self._use_keyring or not helpers.keyring:
+        if not self._use_keyring or not keyring:
             return
-        helpers.keyring.delete_password(self.SERVICE_NAME, self.USERNAME)
+        keyring.delete_password(self.SERVICE_NAME, self.USERNAME)
     
     def delete(self):
         """

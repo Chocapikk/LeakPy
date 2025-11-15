@@ -137,15 +137,17 @@ from leakpy import LeakIX
 client = LeakIX()
 
 # Search for leaks in France
-results = client.search(
+events = client.search(
     scope="leak",
     pages=5,
     query='+country:"France"'
 )
 
-for result in results:
-    if result.protocol and result.ip and result.port:
-        print(f"{result.protocol}://{result.ip}:{result.port}")
+for event in events:
+    if event.protocol in ('http', 'https') and event.ip and event.port:
+        print(f"{event.protocol}://{event.ip}:{event.port}")
+    elif event.ip and event.port:
+        print(f"{event.protocol} {event.ip}:{event.port}")
 ```
 
 ### Search with Custom Fields
@@ -156,17 +158,20 @@ from leakpy import LeakIX
 client = LeakIX()
 
 # Extract specific fields
-results = client.search(
+events = client.search(
     scope="leak",
     pages=3,
     query='+country:"France"',
     fields="protocol,ip,port,host"
 )
 
-for result in results:
-    if result.protocol and result.ip and result.port:
-        host_str = f" - {result.host}" if result.host else ""
-        print(f"{result.protocol}://{result.ip}:{result.port}{host_str}")
+for event in events:
+    if event.protocol in ('http', 'https') and event.ip and event.port:
+        host_str = f" - {event.host}" if event.host else ""
+        print(f"{event.protocol}://{event.ip}:{event.port}{host_str}")
+    elif event.ip and event.port:
+        host_str = f" - {event.host}" if event.host else ""
+        print(f"{event.protocol} {event.ip}:{event.port}{host_str}")
 ```
 
 ### Get Complete JSON
@@ -177,17 +182,17 @@ from leakpy import LeakIX
 client = LeakIX()
 
 # Get full JSON data
-results = client.search(
+events = client.search(
     scope="leak",
     pages=2,
     query='+country:"France"',
     fields="full"
 )
 
-for result in results:
-    print(f"IP: {result.ip}, Port: {result.port}")
-    if result.geoip:
-        print(f"Country: {result.geoip.country_name}")
+for event in events:
+    print(f"IP: {event.ip}, Port: {event.port}")
+    if event.geoip:
+        print(f"Country: {event.geoip.country_name}")
 ```
 
 ### Search with Plugin
@@ -198,16 +203,18 @@ from leakpy import LeakIX
 client = LeakIX()
 
 # Search with specific plugin
-results = client.search(
+events = client.search(
     scope="leak",
     query='+country:"France"',
     pages=5,
     plugin="PulseConnectPlugin"
 )
 
-for result in results:
-    if result.protocol and result.ip and result.port:
-        print(f"{result.protocol}://{result.ip}:{result.port}")
+for event in events:
+    if event.protocol in ('http', 'https') and event.ip and event.port:
+        print(f"{event.protocol}://{event.ip}:{event.port}")
+    elif event.ip and event.port:
+        print(f"{event.protocol} {event.ip}:{event.port}")
 ```
 
 ### List Plugins
@@ -229,8 +236,8 @@ from leakpy import LeakIX
 
 client = LeakIX()
 
-# Get a sample result
-results = client.search(
+# Get a sample event
+events = client.search(
     scope="leak",
     query='+country:"France"',
     pages=1,
@@ -238,8 +245,8 @@ results = client.search(
 )
 
 # Get all available fields
-if results:
-    fields = client.get_all_fields(results[0])
+if events:
+    fields = client.get_all_fields(events[0])
     for field in sorted(fields):
         print(field)
 ```
@@ -252,16 +259,18 @@ from leakpy import LeakIX
 client = LeakIX()
 
 # Use bulk mode for faster results (requires Pro API)
-results = client.search(
+events = client.search(
     scope="leak",
     plugin="TraccarPlugin",
     use_bulk=True,
     output="bulk_results.txt"
 )
 
-for result in results:
-    if result.protocol and result.ip and result.port:
-        print(f"{result.protocol}://{result.ip}:{result.port}")
+for event in events:
+    if event.protocol in ('http', 'https') and event.ip and event.port:
+        print(f"{event.protocol}://{event.ip}:{event.port}")
+    elif event.ip and event.port:
+        print(f"{event.protocol} {event.ip}:{event.port}")
 ```
 
 ### Host Details
@@ -277,15 +286,18 @@ host_info = client.get_host("157.90.211.37")
 # Access services
 if host_info.Services:
     for service in host_info.Services:
-        print(f"{service.protocol}://{service.ip}:{service.port}")
+        if service.protocol in ('http', 'https') and service.ip and service.port:
+            print(f"{service.protocol}://{service.ip}:{service.port}")
+        elif service.ip and service.port:
+            print(f"{service.protocol} {service.ip}:{service.port}")
         if service.http and service.http.title:
             print(f"  Title: {service.http.title}")
 
 # Access leaks
 if host_info.Leaks:
-    for leak in host_info.Leaks:
-        if leak.leak:
-            print(f"Leak: {leak.leak.type} ({leak.leak.severity})")
+    for event in host_info.Leaks:
+        if event.leak:
+            print(f"Leak: {event.leak.type} ({event.leak.severity})")
 
 # Save to file
 client.get_host("157.90.211.37", output="host_details.json")
@@ -304,13 +316,16 @@ domain_info = client.get_domain("leakix.net")
 # Access services
 if domain_info.Services:
     for service in domain_info.Services:
-        print(f"{service.protocol}://{service.host}:{service.port}")
+        if service.protocol in ('http', 'https') and service.host and service.port:
+            print(f"{service.protocol}://{service.host}:{service.port}")
+        elif service.host and service.port:
+            print(f"{service.protocol} {service.host}:{service.port}")
 
 # Access leaks
 if domain_info.Leaks:
-    for leak in domain_info.Leaks:
-        if leak.leak:
-            print(f"Leak: {leak.leak.type} ({leak.leak.severity})")
+    for event in domain_info.Leaks:
+        if event.leak:
+            print(f"Leak: {event.leak.type} ({event.leak.severity})")
 
 # Save to file
 client.get_domain("leakix.net", output="domain_details.json")
@@ -358,8 +373,8 @@ from leakpy import LeakIX
 
 client = LeakIX()
 
-# Search for results
-results = client.search(
+# Search for events
+events = client.search(
     scope="leak",
     query='+country:"France"',
     pages=5,
@@ -367,7 +382,7 @@ results = client.search(
 )
 
 # Analyze statistics using field paths
-stats = client.analyze_query_stats(results, fields="geoip.country_name,protocol")
+stats = client.analyze_query_stats(events, fields="geoip.country_name,protocol")
 
 print(f"Total: {stats.total}")
 print(f"France: {stats.fields.geoip.country_name.France}")
@@ -383,7 +398,7 @@ from leakpy import LeakIX
 client = LeakIX()
 
 # Search with plugin and custom fields
-results = client.search(
+events = client.search(
     scope="leak",
     pages=3,
     query='+country:"France"',
@@ -391,10 +406,13 @@ results = client.search(
     fields="protocol,ip,port,host"
 )
 
-for result in results:
-    if result.protocol and result.ip and result.port:
-        host_str = f" - {result.host}" if result.host else ""
-        print(f"{result.protocol}://{result.ip}:{result.port}{host_str}")
+for event in events:
+    if event.protocol in ('http', 'https') and event.ip and event.port:
+        host_str = f" - {event.host}" if event.host else ""
+        print(f"{event.protocol}://{event.ip}:{event.port}{host_str}")
+    elif event.ip and event.port:
+        host_str = f" - {event.host}" if event.host else ""
+        print(f"{event.protocol} {event.ip}:{event.port}{host_str}")
 ```
 
 ## 🔧 Error Handling
@@ -431,13 +449,13 @@ from leakpy import LeakIX
 client = LeakIX(silent=False)
 
 try:
-    results = client.search(
+    events = client.search(
         scope="leak",
         pages=5,
         query='invalid query syntax',
     )
-    if not results:
-        print("No results found. Check your query.")
+    if not events:
+        print("No events found. Check your query.")
 except ValueError as e:
     print(f"Error: {e}")
 ```

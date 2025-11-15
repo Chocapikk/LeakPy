@@ -97,7 +97,8 @@ class LeakIX:
             silent (bool, optional): Flag to suppress all output (no logs, no progress bar). Defaults to True.
         """
         self.silent = silent
-        self.logger = setup_logger(helpers._DEFAULT_LOGGER_NAME, verbose=False)
+        from .helpers.constants import _DEFAULT_LOGGER_NAME
+        self.logger = setup_logger(_DEFAULT_LOGGER_NAME, verbose=False)
         self.key_manager = APIKeyManager()
 
         api_key_read = api_key or (self.key_manager.read() or self.key_manager.migrate_old_location())
@@ -151,7 +152,8 @@ class LeakIX:
     def _rate_limit_sleep(self, is_cached):
         """Sleep for rate limit if not cached."""
         if not is_cached:
-            time.sleep(helpers._RATE_LIMIT_SLEEP)
+            from .helpers.constants import _RATE_LIMIT_SLEEP
+            time.sleep(_RATE_LIMIT_SLEEP)
 
     def save_api_key(self, api_key):
         """
@@ -197,49 +199,7 @@ class LeakIX:
             >>> stats = client.get_cache_stats()
             >>> print(f"Cache has {stats.total_entries} entries")
         """
-        from .cache import APICache
-        from .config import CacheConfig
-        import time
-        
-        cache = APICache()
-        cache_config = CacheConfig()
-        
-        stats = {
-            'total_entries': len(cache._cache),
-            'ttl_seconds': cache.ttl,
-            'ttl_minutes': cache.ttl // 60,
-            'configured_ttl_minutes': cache_config.get_ttl_minutes(),
-            'cache_file_size': 0,
-            'cache_file_path': str(cache.cache_file),
-            'expired_entries': 0,
-            'active_entries': 0,
-            'oldest_entry_age': 0,
-            'newest_entry_age': 0,
-        }
-        
-        # Calculate file size
-        if cache.cache_file.exists():
-            stats['cache_file_size'] = cache.cache_file.stat().st_size
-        
-        # Analyze entries
-        current_time = time.time()
-        entry_ages = []
-        
-        for key, entry in cache._cache.items():
-            entry_ttl = entry.get('ttl', cache.ttl)
-            entry_age = current_time - entry['timestamp']
-            
-            if entry_age > entry_ttl:
-                stats['expired_entries'] += 1
-            else:
-                stats['active_entries'] += 1
-                entry_ages.append(entry_age)
-        
-        if entry_ages:
-            stats['oldest_entry_age'] = max(entry_ages)
-            stats['newest_entry_age'] = min(entry_ages)
-        
-        return DotNotationObject(stats)
+        return DotNotationObject(helpers.get_cache_stats())
     
     def clear_cache(self):
         """
@@ -542,8 +502,6 @@ class LeakIX:
             if not self.silent:
                 self.log(f"No subdomains found for domain {domain}", "warning")
             return []
-        
-        data = self._deduplicate_subdomains(data)
         
         output_file, should_close_file = helpers.get_output_file(output, self.silent, self.log)
         

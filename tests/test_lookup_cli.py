@@ -81,7 +81,7 @@ class TestLookupCLI(unittest.TestCase):
         })
         
         # Test with default limit (50)
-        with patch('leakpy.helpers.Console') as mock_console_class:
+        with patch('leakpy.helpers.lookup.Console') as mock_console_class:
             mock_console = MagicMock()
             mock_console_class.return_value = mock_console
             
@@ -128,7 +128,7 @@ class TestLookupCLI(unittest.TestCase):
         })
         
         # Test with limit=0 (all)
-        with patch('leakpy.helpers.Console') as mock_console_class:
+        with patch('leakpy.helpers.lookup.Console') as mock_console_class:
             mock_console = MagicMock()
             mock_console_class.return_value = mock_console
             
@@ -177,7 +177,7 @@ class TestLookupCLI(unittest.TestCase):
         })
         
         # Test with limit=20
-        with patch('leakpy.helpers.Console') as mock_console_class:
+        with patch('leakpy.helpers.lookup.Console') as mock_console_class:
             mock_console = MagicMock()
             mock_console_class.return_value = mock_console
             
@@ -226,7 +226,7 @@ class TestLookupCLI(unittest.TestCase):
         })
         
         # Test with limit=0 (all)
-        with patch('leakpy.helpers.Console') as mock_console_class:
+        with patch('leakpy.helpers.lookup.Console') as mock_console_class:
             mock_console = MagicMock()
             mock_console_class.return_value = mock_console
             

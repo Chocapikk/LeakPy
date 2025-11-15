@@ -137,7 +137,8 @@ class APICache:
     def _load_cache(self):
         """Load cache from file."""
         if self.cache_file.exists():
-            with open(self.cache_file, 'r', encoding=helpers._ENCODING_UTF8) as f:
+            from .helpers.constants import _ENCODING_UTF8
+            with open(self.cache_file, 'r', encoding=_ENCODING_UTF8) as f:
                 return json.load(f)
         return {}
     
@@ -145,7 +146,8 @@ class APICache:
     def _save_cache(self):
         """Save cache to file."""
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        with open(self.cache_file, 'w', encoding=helpers._ENCODING_UTF8) as f:
+        from .helpers.constants import _ENCODING_UTF8
+        with open(self.cache_file, 'w', encoding=_ENCODING_UTF8) as f:
             json.dump(self._cache, f, indent=2)
     
     # ========================================================================

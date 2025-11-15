@@ -130,7 +130,7 @@ class TestDomainDetails(unittest.TestCase):
         mock_response.raise_for_status = Mock()
         mock_response.headers = {}
         
-        with patch('leakpy.helpers.make_api_request', return_value=mock_response):
+        with patch('leakpy.helpers.fetch.make_api_request', return_value=mock_response):
             with patch.object(api, 'cache', None):  # Disable cache for test
                 result, cached = api.get_domain_details("example.com", suppress_logs=True)
                 
@@ -148,7 +148,7 @@ class TestDomainDetails(unittest.TestCase):
         mock_response.headers = {'x-limited-for': '60'}
         mock_response.raise_for_status = Mock()
         
-        with patch('leakpy.helpers.make_api_request', return_value=mock_response):
+        with patch('leakpy.helpers.fetch.make_api_request', return_value=mock_response):
             with patch.object(api, 'cache', None):
                 result, cached = api.get_domain_details("example.com", suppress_logs=True)
                 

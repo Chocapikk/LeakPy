@@ -52,9 +52,13 @@ class _EmptyL9Event:
         """Compare equal to None."""
         return other is None
     
+    def __str__(self):
+        """String representation - returns empty string for clean output."""
+        return ""
+    
     def __repr__(self):
-        """String representation for debugging."""
-        return "L9Event(None)"
+        """String representation - returns empty string for clean output."""
+        return ""
 
 
 class L9Event:
@@ -124,7 +128,8 @@ class L9Event:
     
     def _get_dict_attrs(self):
         """Get dictionary attributes (excluding private ones)."""
-        prefix = helpers._PRIVATE_PREFIX
+        from .helpers.constants import _PRIVATE_PREFIX
+        prefix = _PRIVATE_PREFIX
         return {k: v for k, v in self.__dict__.items() if not k.startswith(prefix)}
     
     @helpers.handle_attribute_errors(default_return=None)
