@@ -1,16 +1,16 @@
 Available Fields
 =================
 
-LeakPy supports 71+ fields organized by category. All results are returned as ``l9event`` objects that support dot notation access.
+LeakPy supports 71+ fields organized by category. All results are returned as ``L9Event`` objects that support dot notation access.
 
 .. note::
    The field structure follows the official `l9format schema <https://docs.leakix.net/docs/api/l9format/>`_ from LeakIX. 
-   For the complete official documentation of the l9event format, see the `LeakIX API documentation <https://docs.leakix.net/docs/api/l9format/>`_.
+   For the complete official documentation of the L9Event format, see the `LeakIX API documentation <https://docs.leakix.net/docs/api/l9format/>`_.
 
 Accessing Fields
 ----------------
 
-Use ``search()`` to get results as ``l9event`` objects:
+Use ``search()`` to get results as ``L9Event`` objects:
 
 .. code-block:: python
 
@@ -43,7 +43,7 @@ Field Categories
 ----------------
 
 Root Fields
-~~~~~~~~~~
+~~~~~~~~~~~
 
 Basic information available at the root level:
 
@@ -91,11 +91,11 @@ Geographic information (access via ``leak.geoip.field``):
 .. code-block:: python
 
    for leak in results:
-       if leak.geoip:
-           print(f"Country: {leak.geoip.country_name}")
-           print(f"City: {leak.geoip.city_name}")
-           if leak.geoip.location:
-               print(f"Coordinates: {leak.geoip.location.lat}, {leak.geoip.location.lon}")
+       # Simple and direct - no if checks needed!
+       print(f"Country: {leak.geoip.country_name or 'Unknown'}")
+       print(f"City: {leak.geoip.city_name or 'Unknown'}")
+       if leak.geoip.location.lat:
+           print(f"Coordinates: {leak.geoip.location.lat}, {leak.geoip.location.lon}")
 
 HTTP Fields
 ~~~~~~~~~~~
@@ -103,7 +103,7 @@ HTTP Fields
 HTTP-specific information (access via ``leak.http.field``):
 
 - ``http.favicon_hash`` - Favicon hash
-- ``http.header.content-type`` - Content-Type header (access via ``leak.http.header.content_type`` or ``leak.get('http.header.content-type')``)
+- ``http.header.content-type`` - Content-Type header (access via ``leak.http.header.content_type``)
 - ``http.header.server`` - Server header (access via ``leak.http.header.server``)
 - ``http.length`` - Response length
 - ``http.root`` - Root path
@@ -116,13 +116,12 @@ HTTP-specific information (access via ``leak.http.field``):
 .. code-block:: python
 
    for leak in results:
-       if leak.http:
-           print(f"HTTP Status: {leak.http.status}")
-           print(f"HTTP Title: {leak.http.title}")
-           if leak.http.header:
-               print(f"Server: {leak.http.header.server}")
-               # For headers with dashes, use get() or access via attribute
-               content_type = leak.http.header.get('content-type') or getattr(leak.http.header, 'content_type', None)
+       # Simple and direct - no if checks needed!
+       print(f"HTTP Status: {leak.http.status or 'N/A'}")
+       print(f"HTTP Title: {leak.http.title or 'N/A'}")
+       print(f"Server: {leak.http.header.server or 'N/A'}")
+       # Access headers with dot notation (content-type becomes content_type)
+       content_type = leak.http.header.content_type or 'N/A'
 
 Leak Fields
 ~~~~~~~~~~~~

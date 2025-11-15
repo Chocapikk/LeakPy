@@ -29,7 +29,7 @@ from unittest.mock import Mock, patch, MagicMock
 
 from leakpy.leakix import LeakIX
 from leakpy.api import LeakIXAPI
-from leakpy.parser import l9event
+from leakpy.events import L9Event
 
 
 class TestHostDetails(unittest.TestCase):
@@ -58,11 +58,9 @@ class TestHostDetails(unittest.TestCase):
         with patch.object(self.client.api, 'get_host_details', return_value=(mock_data, False)):
             result = self.client.get_host("1.2.3.4")
             
-            self.assertIsInstance(result, dict)
-            self.assertIn('Services', result)
-            self.assertIn('Leaks', result)
-            self.assertIsNotNone(result['Services'])
-            self.assertIsNone(result['Leaks'])
+            self.assertIsNotNone(result)
+            self.assertIsNotNone(result.Services)
+            self.assertIsNone(result.Leaks)
 
     def test_get_host_with_services_and_leaks(self):
         """Test get_host with both services and leaks."""
@@ -78,17 +76,19 @@ class TestHostDetails(unittest.TestCase):
         with patch.object(self.client.api, 'get_host_details', return_value=(mock_data, False)):
             result = self.client.get_host("1.2.3.4")
             
-            self.assertIsNotNone(result['Services'])
-            self.assertIsNotNone(result['Leaks'])
-            self.assertEqual(len(result['Services']), 1)
-            self.assertEqual(len(result['Leaks']), 1)
+            self.assertIsNotNone(result.Services)
+            self.assertIsNotNone(result.Leaks)
+            self.assertEqual(len(result.Services), 1)
+            self.assertEqual(len(result.Leaks), 1)
 
     def test_get_host_no_data(self):
         """Test get_host when no data is found."""
         with patch.object(self.client.api, 'get_host_details', return_value=(None, False)):
             result = self.client.get_host("1.2.3.4")
             
-            self.assertEqual(result, {"Services": None, "Leaks": None})
+            self.assertIsNotNone(result)
+            self.assertIsNone(result.Services)
+            self.assertIsNone(result.Leaks)
 
     def test_get_host_empty_services_and_leaks(self):
         """Test get_host with empty services and leaks."""
@@ -100,8 +100,8 @@ class TestHostDetails(unittest.TestCase):
         with patch.object(self.client.api, 'get_host_details', return_value=(mock_data, False)):
             result = self.client.get_host("1.2.3.4")
             
-            self.assertIsNone(result['Services'])
-            self.assertIsNone(result['Leaks'])
+            self.assertIsNone(result.Services)
+            self.assertIsNone(result.Leaks)
 
     def test_get_host_with_fields(self):
         """Test get_host with specific fields."""
@@ -115,9 +115,9 @@ class TestHostDetails(unittest.TestCase):
         with patch.object(self.client.api, 'get_host_details', return_value=(mock_data, False)):
             result = self.client.get_host("1.2.3.4", fields="protocol,ip,port")
             
-            self.assertIsNotNone(result['Services'])
+            self.assertIsNotNone(result.Services)
             # Services should be processed with specified fields
-            self.assertIsInstance(result['Services'], list)
+            self.assertIsInstance(result.Services, list)
 
     def test_get_host_api_method(self):
         """Test the API method get_host_details."""
@@ -130,7 +130,7 @@ class TestHostDetails(unittest.TestCase):
         mock_response.raise_for_status = Mock()
         mock_response.headers = {}
         
-        with patch.object(api, '_make_request', return_value=mock_response):
+        with patch('leakpy.helpers.make_api_request', return_value=mock_response):
             with patch.object(api, 'cache', None):  # Disable cache for test
                 result, cached = api.get_host_details("1.2.3.4", suppress_logs=True)
                 
@@ -148,7 +148,7 @@ class TestHostDetails(unittest.TestCase):
         mock_response.headers = {'x-limited-for': '60'}
         mock_response.raise_for_status = Mock()
         
-        with patch.object(api, '_make_request', return_value=mock_response):
+        with patch('leakpy.helpers.make_api_request', return_value=mock_response):
             with patch.object(api, 'cache', None):
                 result, cached = api.get_host_details("1.2.3.4", suppress_logs=True)
                 

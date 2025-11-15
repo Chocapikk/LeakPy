@@ -4,7 +4,8 @@ import unittest
 import tempfile
 import os
 from pathlib import Path
-from leakpy.config import APIKeyManager, get_config_dir
+from leakpy.config import APIKeyManager
+from leakpy.helpers import get_config_dir
 
 
 class TestConfig(unittest.TestCase):

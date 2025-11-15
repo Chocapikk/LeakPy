@@ -23,7 +23,8 @@ setuptools.setup(
         'requests',
         'rich',
         'prompt_toolkit',
-        'keyring>=23.0.0'
+        'keyring>=23.0.0',
+        'l9format>=1.3.2'
     ],
     python_requires='>=3.9',  
     project_urls={

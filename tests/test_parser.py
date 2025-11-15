@@ -1,7 +1,8 @@
 """Unit tests for parser module."""
 
 import unittest
-from leakpy.parser import extract_data_from_json, get_all_fields, process_and_format_data
+from leakpy.helpers import extract_data_from_json, process_and_format_data
+from leakpy.helpers import get_all_fields_from_dict
 
 
 class TestParser(unittest.TestCase):
@@ -74,18 +75,18 @@ class TestParser(unittest.TestCase):
                 "another": "data"
             }
         }
-        fields = get_all_fields(data)
+        fields = get_all_fields_from_dict(data)
         expected = ["nested.another", "nested.field", "protocol"]
         self.assertEqual(fields, expected)
 
     def test_get_all_fields_empty(self):
         """Test getting fields from empty dict."""
-        fields = get_all_fields({})
+        fields = get_all_fields_from_dict({})
         self.assertEqual(fields, [])
 
     def test_get_all_fields_non_dict(self):
         """Test getting fields from non-dict."""
-        fields = get_all_fields("not a dict")
+        fields = get_all_fields_from_dict("not a dict")
         self.assertEqual(fields, [])
 
     def test_process_and_format_data(self):

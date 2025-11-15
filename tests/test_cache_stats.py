@@ -31,10 +31,11 @@ import time
 from pathlib import Path
 
 from leakpy.leakix import LeakIX
-from leakpy.parser import l9event
+from leakpy.events import L9Event
 from leakpy.cache import APICache
 from leakpy.config import CacheConfig
-from leakpy.stats import analyze_query_results, get_field_value
+from leakpy.stats import analyze_query_results
+from leakpy.helpers import get_field_value
 
 
 class TestCacheManagement(unittest.TestCase):
@@ -55,13 +56,13 @@ class TestCacheManagement(unittest.TestCase):
         """Test getting cache stats when cache is empty."""
         stats = self.client.get_cache_stats()
         
-        self.assertIsInstance(stats, dict)
-        self.assertEqual(stats['total_entries'], 0)
-        self.assertEqual(stats['active_entries'], 0)
-        self.assertEqual(stats['expired_entries'], 0)
-        self.assertIn('ttl_minutes', stats)
-        self.assertIn('cache_file_size', stats)
-        self.assertIn('cache_file_path', stats)
+        self.assertIsNotNone(stats)
+        self.assertEqual(stats.total_entries, 0)
+        self.assertEqual(stats.active_entries, 0)
+        self.assertEqual(stats.expired_entries, 0)
+        self.assertIsNotNone(stats.ttl_minutes)
+        self.assertIsNotNone(stats.cache_file_size)
+        self.assertIsNotNone(stats.cache_file_path)
 
     def test_get_cache_ttl_default(self):
         """Test getting default cache TTL."""
@@ -103,7 +104,7 @@ class TestCacheManagement(unittest.TestCase):
         
         # Verify it's empty
         stats = self.client.get_cache_stats()
-        self.assertEqual(stats['total_entries'], 0)
+        self.assertEqual(stats.total_entries, 0)
 
 
 class TestQueryStatistics(unittest.TestCase):
@@ -114,21 +115,21 @@ class TestQueryStatistics(unittest.TestCase):
         self.fake_api_key = "a" * 48
         self.client = LeakIX(api_key=self.fake_api_key, silent=True)
         
-        # Create test results with l9event objects
+        # Create test results with L9Event objects
         self.test_results = [
-            l9event({
+            L9Event({
                 "ip": "1.2.3.4",
                 "port": 80,
                 "protocol": "http",
                 "geoip": {"country_name": "France", "city_name": "Paris"}
             }),
-            l9event({
+            L9Event({
                 "ip": "5.6.7.8",
                 "port": 443,
                 "protocol": "https",
                 "geoip": {"country_name": "France", "city_name": "Lyon"}
             }),
-            l9event({
+            L9Event({
                 "ip": "9.10.11.12",
                 "port": 22,
                 "protocol": "ssh",
@@ -153,53 +154,40 @@ class TestQueryStatistics(unittest.TestCase):
         self.assertEqual(stats_dict['fields']['protocol']['https'], 1)
         self.assertEqual(stats_dict['fields']['protocol']['ssh'], 1)
 
-    def test_analyze_query_stats_with_callables_dict(self):
-        """Test analyze_query_stats with callables (object-oriented approach)."""
+    def test_analyze_query_stats_with_field_paths(self):
+        """Test analyze_query_stats with field paths."""
         stats = self.client.analyze_query_stats(
             self.test_results,
-            fields={
-                'country': lambda leak: leak.geoip.country_name if leak.geoip else None,
-                'protocol': lambda leak: leak.protocol,
-                'port': lambda leak: leak.port
-            },
+            fields='geoip.country_name,protocol,port',
             top=10
         )
         
         self.assertEqual(stats.total, 3)
-        self.assertIsNotNone(stats.fields.country)
+        self.assertIsNotNone(stats.fields.geoip.country_name)
         self.assertIsNotNone(stats.fields.protocol)
         self.assertIsNotNone(stats.fields.port)
         # Test dot notation access
-        self.assertEqual(stats.fields.country.France, 2)
-        self.assertEqual(stats.fields.country.Germany, 1)
+        self.assertEqual(stats.fields.geoip.country_name.France, 2)
+        self.assertEqual(stats.fields.geoip.country_name.Germany, 1)
 
-    def test_analyze_query_stats_with_named_functions(self):
-        """Test analyze_query_stats with named functions."""
-        def get_country(leak):
-            return leak.geoip.country_name if leak.geoip else None
-        
-        def get_protocol(leak):
-            return leak.protocol
-        
+    def test_analyze_query_stats_with_list(self):
+        """Test analyze_query_stats with list of field paths."""
         stats = self.client.analyze_query_stats(
             self.test_results,
-            fields={
-                'country': get_country,
-                'protocol': get_protocol
-            },
+            fields=['geoip.country_name', 'protocol'],
             top=10
         )
         
         self.assertEqual(stats.total, 3)
-        self.assertIsNotNone(stats.fields.country)
+        self.assertIsNotNone(stats.fields.geoip.country_name)
         self.assertIsNotNone(stats.fields.protocol)
-        self.assertEqual(stats.fields.country.France, 2)
+        self.assertEqual(stats.fields.geoip.country_name.France, 2)
 
     def test_analyze_query_stats_with_top_limit(self):
         """Test analyze_query_stats with top limit."""
         # Create many results
         many_results = [
-            l9event({"protocol": f"http{i % 3}", "port": i})
+            L9Event({"protocol": f"http{i % 3}", "port": i})
             for i in range(20)
         ]
         
@@ -255,38 +243,25 @@ class TestQueryStatistics(unittest.TestCase):
         self.assertIsNotNone(stats.fields.protocol)
         self.assertIsNotNone(stats.fields.port)
 
-    def test_analyze_query_stats_complex_callable(self):
-        """Test analyze_query_stats with complex callable logic."""
-        def get_port_range(leak):
-            if not leak.port:
-                return None
-            port = int(leak.port) if isinstance(leak.port, str) else leak.port
-            if port < 1024:
-                return "Well-known"
-            elif port < 49152:
-                return "Registered"
-            else:
-                return "Dynamic"
-        
+    def test_analyze_query_stats_with_nested_paths(self):
+        """Test analyze_query_stats with nested field paths."""
         stats = self.client.analyze_query_stats(
             self.test_results,
-            fields={
-                'port_range': get_port_range,
-                'protocol': lambda leak: leak.protocol
-            }
+            fields='geoip.country_name,geoip.city_name,protocol'
         )
         
         self.assertEqual(stats.total, 3)
-        self.assertIsNotNone(stats.fields.port_range)
+        self.assertIsNotNone(stats.fields.geoip.country_name)
+        self.assertIsNotNone(stats.fields.geoip.city_name)
         self.assertIsNotNone(stats.fields.protocol)
 
 
 class TestStatsHelpers(unittest.TestCase):
     """Tests for stats helper functions."""
 
-    def test_get_field_value_with_l9event(self):
-        """Test get_field_value with l9event object."""
-        leak = l9event({
+    def test_get_field_value_with_L9Event(self):
+        """Test get_field_value with L9Event object."""
+        leak = L9Event({
             "protocol": "http",
             "geoip": {"country_name": "France"}
         })
@@ -301,22 +276,10 @@ class TestStatsHelpers(unittest.TestCase):
         
         # Test missing field
         value = get_field_value(leak, "nonexistent")
-        self.assertIsNone(value)
+        # Missing fields return an empty object that evaluates to None
+        self.assertEqual(value, None)
+        self.assertFalse(value)
 
-    def test_get_field_value_with_callable(self):
-        """Test get_field_value with callable."""
-        leak = l9event({"protocol": "http", "port": 80})
-        
-        # Test with lambda
-        value = get_field_value(leak, lambda l: l.protocol)
-        self.assertEqual(value, "http")
-        
-        # Test with function
-        def get_port(leak):
-            return leak.port
-        
-        value = get_field_value(leak, get_port)
-        self.assertEqual(value, 80)
 
     def test_get_field_value_with_dict(self):
         """Test get_field_value with dict."""
@@ -333,17 +296,14 @@ class TestStatsHelpers(unittest.TestCase):
         value = get_field_value(data, "geoip.country_name")
         self.assertEqual(value, "France")
 
-    def test_analyze_query_results_with_callables(self):
-        """Test analyze_query_results function directly with callables."""
+    def test_analyze_query_results_with_string(self):
+        """Test analyze_query_results function directly with string field paths."""
         results = [
-            l9event({"protocol": "http", "port": 80}),
-            l9event({"protocol": "https", "port": 443}),
+            L9Event({"protocol": "http", "port": 80}),
+            L9Event({"protocol": "https", "port": 443}),
         ]
         
-        stats = analyze_query_results(results, fields_to_analyze={
-            'protocol': lambda leak: leak.protocol,
-            'port': lambda leak: leak.port
-        })
+        stats = analyze_query_results(results, fields_to_analyze='protocol,port')
         
         self.assertEqual(stats.total, 2)
         self.assertIsNotNone(stats.fields.protocol)

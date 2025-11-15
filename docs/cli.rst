@@ -406,7 +406,7 @@ Use bulk mode:
 
 .. code-block:: bash
 
-   $ leakpy search -q '+country:"France"' -b -o results.txt
+   $ leakpy search -q 'plugin:TraccarPlugin' -b -o results.txt
 
 Configure API key:
 
@@ -485,7 +485,7 @@ Silent mode (for scripting):
    $ leakpy --silent stats cache
 
 Batch Processing
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 All lookup commands support batch processing from an input file. Rate limiting is handled automatically by the API:
 

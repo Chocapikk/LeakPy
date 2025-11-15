@@ -31,8 +31,8 @@ import os
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from leakpy.cli.commands.lookup import _display_host_info, _display_domain_info
-from leakpy.parser import l9event
+from leakpy.helpers import display_host_info, display_domain_info
+from leakpy.events import L9Event
 
 
 class TestLookupCLI(unittest.TestCase):
@@ -45,7 +45,7 @@ class TestLookupCLI(unittest.TestCase):
     def test_display_host_info_with_limit(self):
         """Test _display_host_info with limit parameter."""
         # Create mock host info with more than 50 services
-        services = [l9event({
+        services = [L9Event({
             'protocol': 'http',
             'port': 80 + i,
             'host': f'host{i}.example.com',
@@ -58,7 +58,7 @@ class TestLookupCLI(unittest.TestCase):
             'http': {'status': 200}
         }) for i in range(60)]
         
-        leaks = [l9event({
+        leaks = [L9Event({
             'Ip': '1.2.3.4',
             'resource_id': f'leak{i}.example.com',
             'events': [{
@@ -73,24 +73,26 @@ class TestLookupCLI(unittest.TestCase):
             }]
         }) for i in range(60)]
         
-        host_info = {
+        # Convert to DotNotationObject format
+        from leakpy.leakix import DotNotationObject
+        host_info = DotNotationObject({
             'Services': services,
             'Leaks': leaks
-        }
+        })
         
         # Test with default limit (50)
-        with patch('leakpy.cli.commands.lookup.Console') as mock_console_class:
+        with patch('leakpy.helpers.Console') as mock_console_class:
             mock_console = MagicMock()
             mock_console_class.return_value = mock_console
             
-            _display_host_info(host_info, '1.2.3.4', limit=50)
+            display_host_info(host_info, '1.2.3.4', limit=50)
             
             # Verify console.print was called (table was displayed)
             self.assertGreater(mock_console.print.call_count, 0)
     
     def test_display_host_info_with_all(self):
         """Test _display_host_info with --all (limit=0)."""
-        services = [l9event({
+        services = [L9Event({
             'protocol': 'http',
             'port': 80 + i,
             'host': f'host{i}.example.com',
@@ -103,7 +105,7 @@ class TestLookupCLI(unittest.TestCase):
             'http': {'status': 200}
         }) for i in range(10)]
         
-        leaks = [l9event({
+        leaks = [L9Event({
             'Ip': '1.2.3.4',
             'resource_id': f'leak{i}.example.com',
             'events': [{
@@ -118,24 +120,26 @@ class TestLookupCLI(unittest.TestCase):
             }]
         }) for i in range(10)]
         
-        host_info = {
+        # Convert to DotNotationObject format
+        from leakpy.leakix import DotNotationObject
+        host_info = DotNotationObject({
             'Services': services,
             'Leaks': leaks
-        }
+        })
         
         # Test with limit=0 (all)
-        with patch('leakpy.cli.commands.lookup.Console') as mock_console_class:
+        with patch('leakpy.helpers.Console') as mock_console_class:
             mock_console = MagicMock()
             mock_console_class.return_value = mock_console
             
-            _display_host_info(host_info, '1.2.3.4', limit=0)
+            display_host_info(host_info, '1.2.3.4', limit=0)
             
             # Verify console.print was called
             self.assertGreater(mock_console.print.call_count, 0)
     
     def test_display_domain_info_with_limit(self):
         """Test _display_domain_info with limit parameter."""
-        services = [l9event({
+        services = [L9Event({
             'protocol': 'http',
             'port': 80 + i,
             'host': f'host{i}.example.com',
@@ -149,7 +153,7 @@ class TestLookupCLI(unittest.TestCase):
             'http': {'status': 200}
         }) for i in range(60)]
         
-        leaks = [l9event({
+        leaks = [L9Event({
             'Ip': '1.2.3.4',
             'resource_id': f'leak{i}.example.com',
             'events': [{
@@ -165,24 +169,26 @@ class TestLookupCLI(unittest.TestCase):
             }]
         }) for i in range(60)]
         
-        domain_info = {
+        # Convert to DotNotationObject format
+        from leakpy.leakix import DotNotationObject
+        domain_info = DotNotationObject({
             'Services': services,
             'Leaks': leaks
-        }
+        })
         
         # Test with limit=20
-        with patch('leakpy.cli.commands.lookup.Console') as mock_console_class:
+        with patch('leakpy.helpers.Console') as mock_console_class:
             mock_console = MagicMock()
             mock_console_class.return_value = mock_console
             
-            _display_domain_info(domain_info, 'example.com', limit=20)
+            display_domain_info(domain_info, 'example.com', limit=20)
             
             # Verify console.print was called
             self.assertGreater(mock_console.print.call_count, 0)
     
     def test_display_domain_info_with_all(self):
         """Test _display_domain_info with --all (limit=0)."""
-        services = [l9event({
+        services = [L9Event({
             'protocol': 'http',
             'port': 80 + i,
             'host': f'host{i}.example.com',
@@ -196,7 +202,7 @@ class TestLookupCLI(unittest.TestCase):
             'http': {'status': 200}
         }) for i in range(10)]
         
-        leaks = [l9event({
+        leaks = [L9Event({
             'Ip': '1.2.3.4',
             'resource_id': f'leak{i}.example.com',
             'events': [{
@@ -212,17 +218,19 @@ class TestLookupCLI(unittest.TestCase):
             }]
         }) for i in range(10)]
         
-        domain_info = {
+        # Convert to DotNotationObject format
+        from leakpy.leakix import DotNotationObject
+        domain_info = DotNotationObject({
             'Services': services,
             'Leaks': leaks
-        }
+        })
         
         # Test with limit=0 (all)
-        with patch('leakpy.cli.commands.lookup.Console') as mock_console_class:
+        with patch('leakpy.helpers.Console') as mock_console_class:
             mock_console = MagicMock()
             mock_console_class.return_value = mock_console
             
-            _display_domain_info(domain_info, 'example.com', limit=0)
+            display_domain_info(domain_info, 'example.com', limit=0)
             
             # Verify console.print was called
             self.assertGreater(mock_console.print.call_count, 0)
@@ -230,4 +238,5 @@ class TestLookupCLI(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
 

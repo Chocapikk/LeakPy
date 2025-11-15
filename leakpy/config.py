@@ -24,29 +24,9 @@ SOFTWARE.
 
 """Configuration management for LeakPy."""
 
-import os
 from pathlib import Path
 
-# Try to import keyring for secure storage
-try:
-    import keyring  # type: ignore
-    KEYRING_AVAILABLE = True
-except ImportError:
-    KEYRING_AVAILABLE = False
-    keyring = None  # type: ignore
-
-
-def get_config_dir():
-    """Get the configuration directory for the current OS."""
-    if os.name == "nt":  # Windows
-        base = os.getenv("LOCALAPPDATA") or os.getenv("APPDATA") or str(Path.home())
-        config_dir = Path(base) / "LeakPy"
-    else:  # Linux, macOS, etc.
-        base = os.getenv("XDG_CONFIG_HOME") or str(Path.home() / ".config")
-        config_dir = Path(base) / "LeakPy"
-    
-    config_dir.mkdir(parents=True, exist_ok=True)
-    return config_dir
+from . import helpers
 
 
 class APIKeyManager:
@@ -57,33 +37,11 @@ class APIKeyManager:
     
     def __init__(self):
         """Initialize the API key manager."""
-        config_dir = get_config_dir()
+        config_dir = helpers.get_config_dir()
         self.api_key_file = config_dir / "api_key.txt"
-        self._use_keyring = KEYRING_AVAILABLE
+        self._use_keyring = helpers.KEYRING_AVAILABLE
     
-    def _delete_file_safe(self, file_path):
-        """Safely delete a file, ignoring errors."""
-        try:
-            if file_path.exists():
-                file_path.unlink()
-        except (IOError, OSError):
-            pass
     
-    def _read_file_safe(self, file_path):
-        """Safely read a file, returning None on error."""
-        try:
-            if not file_path.exists():
-                return None
-            return file_path.read_text(encoding="utf-8").strip()
-        except (IOError, OSError):
-            return None
-    
-    def _write_file_safe(self, file_path, content):
-        """Safely write content to a file with restrictive permissions."""
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(content, encoding="utf-8")
-        if os.name != "nt":
-            file_path.chmod(0o600)
     
     def _try_keyring_operation(self, operation, *args, **kwargs):
         """
@@ -96,19 +54,30 @@ class APIKeyManager:
         Returns:
             Result of the operation, or None if it fails.
         """
-        if not self._use_keyring:
-            return None
+        @helpers.handle_exceptions(default_return=None, exception_types=(Exception,))
+        def _execute():
+            if not self._use_keyring:
+                return None
+            result = operation(*args, **kwargs)
+            return result
         
-        try:
-            return operation(*args, **kwargs)
-        except Exception:
+        result = _execute()
+        if result is None and self._use_keyring:
             # If keyring fails, disable it and fall back to file storage
             self._use_keyring = False
-            return None
+        return result
     
     def _remove_old_file_storage(self):
         """Remove old file-based storage when using keyring."""
-        self._delete_file_safe(self.api_key_file)
+        helpers.delete_file_safe(self.api_key_file)
+    
+    def _save_to_keyring(self, api_key):
+        """Save API key to keyring if available."""
+        if not helpers.keyring:
+            return False
+        return self._try_keyring_operation(
+            helpers.keyring.set_password, self.SERVICE_NAME, self.USERNAME, api_key
+        ) is not None
     
     def save(self, api_key):
         """
@@ -117,15 +86,20 @@ class APIKeyManager:
         Uses keyring if available (secure system keychain), otherwise falls back
         to file storage with restrictive permissions.
         """
-        # Try keyring first
-        if self._try_keyring_operation(
-            keyring.set_password, self.SERVICE_NAME, self.USERNAME, api_key
-        ) is not None:
+        if self._save_to_keyring(api_key):
             self._remove_old_file_storage()
             return
         
-        # Fallback to file storage
-        self._write_file_safe(self.api_key_file, api_key)
+        helpers.write_file_safe(self.api_key_file, api_key, restrict_permissions=True)
+    
+    def _read_from_keyring(self):
+        """Read API key from keyring if available."""
+        if not self._use_keyring or not helpers.keyring:
+            return None
+        key = self._try_keyring_operation(
+            helpers.keyring.get_password, self.SERVICE_NAME, self.USERNAME
+        )
+        return key.strip() if key else None
     
     def read(self):
         """
@@ -133,25 +107,23 @@ class APIKeyManager:
         
         Tries keyring first, then falls back to file storage.
         """
-        # Try keyring first
-        if self._use_keyring:
-            key = self._try_keyring_operation(
-                keyring.get_password, self.SERVICE_NAME, self.USERNAME
-            )
-            if key:
-                return key.strip()
-        
-        # Fallback to file storage
-        return self._read_file_safe(self.api_key_file)
+        return self._read_from_keyring() or helpers.read_file_safe(self.api_key_file)
     
     def migrate_old_location(self):
         """Migrate API key from old location (~/.local/.api.txt) to new location."""
         old_path = Path.home() / ".local" / ".api.txt"
-        old_key = self._read_file_safe(old_path)
+        old_key = helpers.read_file_safe(old_path)
         if old_key:
             self.save(old_key)
             return old_key
         return None
+    
+    @helpers.handle_exceptions(default_return=None, exception_types=(Exception,))
+    def _delete_from_keyring(self):
+        """Delete API key from keyring if available."""
+        if not self._use_keyring or not helpers.keyring:
+            return
+        helpers.keyring.delete_password(self.SERVICE_NAME, self.USERNAME)
     
     def delete(self):
         """
@@ -159,15 +131,8 @@ class APIKeyManager:
         
         Removes from keyring if used, or deletes the file.
         """
-        # Try to delete from keyring
-        if self._use_keyring:
-            try:
-                keyring.delete_password(self.SERVICE_NAME, self.USERNAME)
-            except (keyring.errors.PasswordDeleteError, Exception):
-                pass
-        
-        # Also try to delete file-based storage
-        self._delete_file_safe(self.api_key_file)
+        self._delete_from_keyring()
+        helpers.delete_file_safe(self.api_key_file)
     
     def is_valid(self, api_key):
         """Check if an API key is valid (48 characters)."""
@@ -181,29 +146,16 @@ class CacheConfig:
     
     def __init__(self):
         """Initialize the cache configuration manager."""
-        self.config_dir = get_config_dir()
+        self.config_dir = helpers.get_config_dir()
         self.config_file = self.config_dir / self.CONFIG_FILE
     
     def _read_config(self):
         """Read configuration from file."""
-        try:
-            if self.config_file.exists():
-                import json
-                with open(self.config_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-        except (IOError, json.JSONDecodeError):
-            pass
-        return {}
+        return helpers.read_json_file(self.config_file)
     
     def _write_config(self, config):
         """Write configuration to file."""
-        try:
-            import json
-            self.config_dir.mkdir(parents=True, exist_ok=True)
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2)
-        except (IOError, OSError):
-            pass
+        helpers.write_json_file(self.config_file, config, ensure_dir=True)
     
     def get_ttl_minutes(self):
         """Get the configured TTL in minutes, or None if not set."""

@@ -32,7 +32,8 @@ from unittest.mock import Mock, patch, MagicMock
 from io import StringIO
 
 from leakpy.leakix import LeakIX
-from leakpy.parser import extract_data_from_json, l9event
+from leakpy.helpers import extract_data_from_json
+from leakpy.events import L9Event
 from leakpy.api import LeakIXAPI
 from leakpy.cache import APICache
 
@@ -188,27 +189,31 @@ class TestRobustness(unittest.TestCase):
         """Test that empty JSON is handled."""
         data = {}
         result = extract_data_from_json(data, None)
-        # extract_data_from_json can return either a list or a single l9event
-        # For empty dict, it processes the dict itself and returns a single l9event
-        self.assertIsInstance(result, (list, l9event))
+        # extract_data_from_json can return either a list or a single L9Event
+        # For empty dict, it processes the dict itself and returns a single L9Event
+        self.assertIsInstance(result, (list, L9Event))
         if isinstance(result, list):
             for item in result:
-                self.assertIsInstance(item, l9event)
+                self.assertIsInstance(item, L9Event)
 
     def test_malformed_json_response(self):
         """Test that malformed JSON is handled."""
         # This should be handled at API level, but test parser robustness
         data = {"events": None}
         result = extract_data_from_json(data, None)
-        # When events is None, it processes the dict itself, returning a single l9event
-        self.assertIsInstance(result, l9event)
+        # When events is None, it processes the dict itself, returning a list with a single L9Event
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result[0], L9Event)
 
     def test_missing_events_key(self):
         """Test that missing events key is handled."""
         data = {"other": "data"}
         result = extract_data_from_json(data, None)
-        # When events key is missing, it processes the dict itself, returning a single l9event
-        self.assertIsInstance(result, l9event)
+        # When events key is missing, it processes the dict itself, returning a list with a single L9Event
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result[0], L9Event)
 
     def test_empty_events_list(self):
         """Test that empty events list is handled."""
@@ -286,40 +291,43 @@ class TestRobustness(unittest.TestCase):
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 1)
 
-    # ========== l9event Object Robustness Tests ==========
+    # ========== L9Event Object Robustness Tests ==========
 
-    def test_l9event_with_none(self):
-        """Test that l9event handles None values."""
-        event = l9event({"field": None, "other": "value"})
+    def test_L9Event_with_none(self):
+        """Test that L9Event handles None values."""
+        event = L9Event({"field": None, "other": "value"})
         self.assertIsNone(event.field)
         self.assertEqual(event.other, "value")
 
-    def test_l9event_missing_attribute(self):
-        """Test that l9event returns None for missing attributes."""
-        event = l9event({"existing": "value"})
+    def test_L9Event_missing_attribute(self):
+        """Test that L9Event returns None for missing attributes."""
+        event = L9Event({"existing": "value"})
         self.assertEqual(event.existing, "value")
-        self.assertIsNone(event.nonexistent)
+        # Missing attributes return an empty object that evaluates to None
+        self.assertEqual(event.nonexistent, None)
+        self.assertFalse(event.nonexistent)
 
-    def test_l9event_nested_none(self):
-        """Test that l9event handles nested None values."""
-        event = l9event({"nested": None})
+    def test_L9Event_nested_none(self):
+        """Test that L9Event handles nested None values."""
+        event = L9Event({"nested": None})
         self.assertIsNone(event.nested)
 
-    def test_l9event_empty_dict(self):
-        """Test that l9event handles empty dict."""
-        event = l9event({})
+    def test_L9Event_empty_dict(self):
+        """Test that L9Event handles empty dict."""
+        event = L9Event({})
         self.assertIsNotNone(event)
-        self.assertIsNone(event.any_field)
+        # Missing attributes return an empty object that evaluates to None
+        self.assertEqual(event.any_field, None)
+        self.assertFalse(event.any_field)
 
-    def test_l9event_non_dict(self):
-        """Test that l9event handles non-dict input."""
-        event = l9event("string")
-        # Should handle gracefully
-        self.assertIsNotNone(event)
+    def test_L9Event_non_dict(self):
+        """Test that L9Event raises TypeError for non-dict input."""
+        with self.assertRaises(TypeError):
+            L9Event("string")
 
-    def test_l9event_to_dict(self):
+    def test_L9Event_to_dict(self):
         """Test that to_dict() works with various data types."""
-        event = l9event({
+        event = L9Event({
             "string": "value",
             "int": 123,
             "float": 45.6,
@@ -333,15 +341,17 @@ class TestRobustness(unittest.TestCase):
         self.assertEqual(result["string"], "value")
         self.assertEqual(result["int"], 123)
 
-    def test_l9event_getitem(self):
-        """Test that __getitem__ works correctly."""
-        event = l9event({"key": "value"})
-        self.assertEqual(event["key"], "value")
-        self.assertIsNone(event["nonexistent"])
+    def test_L9Event_dot_notation(self):
+        """Test that dot notation works correctly."""
+        event = L9Event({"key": "value"})
+        self.assertEqual(event.key, "value")
+        # Missing attributes return an empty object that evaluates to None
+        self.assertEqual(event.nonexistent, None)
+        self.assertFalse(event.nonexistent)
 
-    def test_l9event_getitem_int_index(self):
-        """Test that __getitem__ raises TypeError for int indices."""
-        event = l9event({"key": "value"})
+    def test_L9Event_dot_notation_only(self):
+        """Test that only dot notation is supported (no [] access)."""
+        event = L9Event({"key": "value"})
         with self.assertRaises(TypeError):
             _ = event[0]
 

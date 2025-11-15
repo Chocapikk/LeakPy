@@ -60,9 +60,9 @@ class TestSubdomains(unittest.TestCase):
             
             self.assertIsInstance(result, list)
             self.assertEqual(len(result), 2)
-            self.assertIn('subdomain', result[0])
-            self.assertIn('distinct_ips', result[0])
-            self.assertIn('last_seen', result[0])
+            self.assertIsNotNone(result[0].subdomain)
+            self.assertIsNotNone(result[0].distinct_ips)
+            self.assertIsNotNone(result[0].last_seen)
 
     def test_get_subdomains_empty(self):
         """Test get_subdomains when no subdomains found."""
@@ -91,14 +91,15 @@ class TestSubdomains(unittest.TestCase):
         mock_response.raise_for_status = Mock()
         mock_response.headers = {}
         
-        with patch.object(api, '_make_request', return_value=mock_response):
+        with patch('leakpy.helpers.make_api_request', return_value=mock_response):
             with patch.object(api, 'cache', None):  # Disable cache for test
                 result, cached = api.get_subdomains("example.com", suppress_logs=True)
                 
+                # API method returns raw dicts, client.get_subdomains() converts to DotNotationObject
                 self.assertIsNotNone(result)
                 self.assertIsInstance(result, list)
                 self.assertEqual(len(result), 1)
-                self.assertIn('subdomain', result[0])
+                self.assertIn('subdomain', result[0])  # API returns dicts
                 self.assertFalse(cached)
 
     def test_get_subdomains_rate_limited(self):
@@ -110,7 +111,7 @@ class TestSubdomains(unittest.TestCase):
         mock_response.headers = {'x-limited-for': '60'}
         mock_response.raise_for_status = Mock()
         
-        with patch.object(api, '_make_request', return_value=mock_response):
+        with patch('leakpy.helpers.make_api_request', return_value=mock_response):
             with patch.object(api, 'cache', None):
                 result, cached = api.get_subdomains("example.com", suppress_logs=True)
                 
@@ -163,7 +164,7 @@ class TestSubdomains(unittest.TestCase):
         mock_response.raise_for_status = Mock()
         mock_response.headers = {}
         
-        with patch.object(api, '_make_request', return_value=mock_response):
+        with patch('leakpy.helpers.make_api_request', return_value=mock_response):
             with patch.object(api, 'cache', None):
                 result, cached = api.get_subdomains("example.com", suppress_logs=True)
                 

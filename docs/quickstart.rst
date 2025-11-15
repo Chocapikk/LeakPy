@@ -86,7 +86,7 @@ Basic Python Usage
    if not client.has_api_key():
        client.save_api_key("your_48_character_api_key_here")
 
-   # Get results using search() - returns l9event objects
+   # Get results using search() - returns L9Event objects
    # search() is the main method - it always returns results, even if output is specified
    results = client.search(
        scope="leak",

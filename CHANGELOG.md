@@ -5,6 +5,35 @@ All notable changes to LeakPy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-11-15
+
+### Added
+- **New `helpers.py` module**: Centralized helper functions for API operations, HTTP requests, caching, and CLI utilities
+- **New `events.py` module**: Renamed from `parser.py` for better clarity (contains `L9Event` data models)
+- **Documentation testing**: New test scripts `doc_examples_test.py` and `examples_md_test.py` to validate Python code examples in documentation (not executed by CI)
+
+### Changed
+- **Major DRY refactoring**: Consolidated repetitive code in `api.py` by extracting common patterns into helper functions
+- **Helper migration**: All helper methods from `LeakIXAPI` class moved to standalone functions in `helpers.py` module
+- **Rate limiting improvement**: Rate limit wait time now retrieved from `x-limited-for` header instead of defaulting to 60 seconds
+- **Error handling**: Removed all `try/except` blocks in favor of conditional checks and dedicated helper functions for safe parsing
+- **Code organization**: Reorganized `api.py` methods into logical sections (INITIALIZATION, HTTP HELPERS, PARSING HELPERS, CACHE HELPERS, BULK PROCESSING, PUBLIC API METHODS)
+- **CLI consolidation**: Merged all CLI subcommands from `leakpy/cli/commands/` into single `cli.py` file for better maintainability
+- **Module renaming**: `parser.py` → `events.py` for better semantic clarity (internal change, no API impact)
+- **Documentation examples**: Simplified all examples in `EXAMPLES.md` and documentation to be more direct and concise
+- **Bulk mode examples**: Updated all bulk mode examples to use `plugin:TraccarPlugin` instead of `country:"France"` and removed `pages` parameter (bulk mode retrieves all results automatically)
+
+### Fixed
+- **Import cleanup**: Removed unused imports and minimized import statements in `leakix.py`
+- **Documentation consistency**: Fixed bulk mode examples to not specify `pages` parameter when using bulk mode
+- **CLI output handling**: Fixed stdout redirection and output file handling in lookup commands
+- **Argument parsing**: Used `getattr` for safe access to `args.ip` and `args.domain` to prevent `AttributeError` in CLI
+
+### Removed
+- **CLI subdirectory structure**: Removed `leakpy/cli/commands/` directory structure, consolidated into `cli.py`
+- **Redundant example file**: Removed `example.py` as its purpose is covered by `EXAMPLES.md` and documentation
+- **Unused imports**: Cleaned up unused imports across the codebase
+
 ## [2.0.5] - 2025-11-13
 
 ### Added
@@ -62,10 +91,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Better formatted tables with consistent styling across all lookup types
 - **New Library Methods**: Expanded Python library API with new functionality
   - **`get_host(ip, fields="full", output=None)`**: Get detailed information about a specific IP address
-    - Returns dictionary with 'Services' and 'Leaks' keys containing l9event objects
+    - Returns dictionary with 'Services' and 'Leaks' keys containing L9Event objects
     - Supports field extraction and file output
   - **`get_domain(domain, fields="full", output=None)`**: Get detailed information about a domain
-    - Returns dictionary with 'Services' and 'Leaks' keys containing l9event objects
+    - Returns dictionary with 'Services' and 'Leaks' keys containing L9Event objects
     - Includes subdomain information and associated services
   - **`get_subdomains(domain, output=None)`**: Get list of subdomains for a specific domain
     - Returns list of dictionaries with subdomain, distinct_ips, and last_seen information

@@ -134,7 +134,7 @@ The `LeakIX` class offers a direct and user-friendly interface to the LeakIX API
 
 **Retrieving Results:**
 
-Results are returned as ``l9event`` objects that support dot notation access. Use ``search()`` to get results. If you specify ``output``, results are written to a file but still returned.
+Results are returned as ``L9Event`` objects that support dot notation access. Use ``search()`` to get results. If you specify ``output``, results are written to a file but still returned.
 
 ```python
 from leakpy import LeakIX
@@ -145,7 +145,7 @@ client = LeakIX()
 # Enable logs and progress bars
 client = LeakIX(silent=False)
 
-# Get results as l9event objects
+# Get results as L9Event objects
 results = client.search(
     scope="leak",
     query='+country:"France"',
@@ -209,18 +209,18 @@ client = LeakIX()
 host_info = client.get_host("157.90.211.37")
 
 # Access services and leaks with dot notation
-if host_info['Services']:
-    print(f"Found {len(host_info['Services'])} services:")
-    for service in host_info['Services']:
+if host_info.Services:
+    print(f"Found {len(host_info.Services)} services:")
+    for service in host_info.Services:
         print(f"  {service.protocol}://{service.ip}:{service.port}")
         if service.host:
             print(f"    Host: {service.host}")
         if service.http and service.http.status:
             print(f"    HTTP Status: {service.http.status}")
 
-if host_info['Leaks']:
-    print(f"\nFound {len(host_info['Leaks'])} leaks:")
-    for leak in host_info['Leaks']:
+if host_info.Leaks:
+    print(f"\nFound {len(host_info.Leaks)} leaks:")
+    for leak in host_info.Leaks:
         if leak.leak:
             print(f"  Type: {leak.leak.type}, Severity: {leak.leak.severity}")
 
@@ -239,18 +239,18 @@ client = LeakIX()
 domain_info = client.get_domain("leakix.net")
 
 # Access services and leaks with dot notation
-if domain_info['Services']:
-    print(f"Found {len(domain_info['Services'])} services:")
-    for service in domain_info['Services']:
+if domain_info.Services:
+    print(f"Found {len(domain_info.Services)} services:")
+    for service in domain_info.Services:
         print(f"  {service.protocol}://{service.host}:{service.port}")
         if service.ip:
             print(f"    IP: {service.ip}")
         if service.http and service.http.status:
             print(f"    HTTP Status: {service.http.status}")
 
-if domain_info['Leaks']:
-    print(f"\nFound {len(domain_info['Leaks'])} leaks:")
-    for leak in domain_info['Leaks']:
+if domain_info.Leaks:
+    print(f"\nFound {len(domain_info.Leaks)} leaks:")
+    for leak in domain_info.Leaks:
         if leak.leak:
             print(f"  Type: {leak.leak.type}, Severity: {leak.leak.severity}")
 
@@ -268,11 +268,11 @@ client = LeakIX()
 # Get subdomains for a specific domain
 subdomains = client.get_subdomains("leakix.net")
 
-# Access subdomain details
+# Access subdomain details with dot notation
 print(f"Found {len(subdomains)} subdomains:")
 for subdomain in subdomains:
-    print(f"  {subdomain['subdomain']} - {subdomain['distinct_ips']} IPs")
-    print(f"    Last seen: {subdomain['last_seen']}")
+    print(f"  {subdomain.subdomain} - {subdomain.distinct_ips} IPs")
+    print(f"    Last seen: {subdomain.last_seen}")
 
 # Save to file
 client.get_subdomains("leakix.net", output="subdomains.json")
@@ -287,9 +287,9 @@ client = LeakIX()
 
 # Get cache statistics
 stats = client.get_cache_stats()
-print(f"Cache entries: {stats['total_entries']}")
-print(f"Active entries: {stats['active_entries']}")
-print(f"TTL: {stats['ttl_minutes']} minutes")
+print(f"Cache entries: {stats.total_entries}")
+print(f"Active entries: {stats.active_entries}")
+print(f"TTL: {stats.ttl_minutes} minutes")
 
 # Get current TTL
 ttl = client.get_cache_ttl()
@@ -316,41 +316,14 @@ results = client.search(
     pages=5
 )
 
-# Object-oriented approach with callables (recommended)
-stats = client.analyze_query_stats(results, fields={
-    'country': lambda leak: leak.geoip.country_name if leak.geoip else None,
-    'protocol': lambda leak: leak.protocol,
-    'port': lambda leak: leak.port
-})
+# Simple approach using field paths
+stats = client.analyze_query_stats(results, fields='geoip.country_name,protocol')
 
-# Use dot notation (no dict access!)
+# Use dot notation
 print(f"Total results: {stats.total}")
-print(f"France: {stats.fields.country.France} leaks")
+print(f"France: {stats.fields.geoip.country_name.France} leaks")
 print(f"HTTP: {stats.fields.protocol.http} services")
 print(f"HTTPS: {stats.fields.protocol.https} services")
-
-# Using named functions for complex logic
-def get_port_category(leak):
-    """Categorize ports into security zones."""
-    if not leak.port:
-        return None
-    port = int(leak.port) if isinstance(leak.port, str) else leak.port
-    if port < 1024:
-        return "System ports"
-    elif port < 49152:
-        return "User ports"
-    else:
-        return "Dynamic ports"
-
-stats = client.analyze_query_stats(results, fields={
-    'port_category': get_port_category,
-    'protocol': lambda leak: leak.protocol
-})
-
-# Access with dot notation (convert to dict for iteration)
-port_cat_dict = stats.fields.port_category.to_dict()
-for category, count in port_cat_dict.items():
-    print(f"{category}: {count}")
 
 # Analyze all fields
 all_stats = client.analyze_query_stats(results, all_fields=True)

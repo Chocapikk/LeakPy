@@ -37,7 +37,7 @@ extensions = [
 templates_path = ['_templates']
 
 # Exclude patterns
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'README.md']
 
 # HTML theme
 html_theme = 'sphinx_rtd_theme'

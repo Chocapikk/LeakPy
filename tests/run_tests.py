@@ -10,6 +10,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 if __name__ == "__main__":
     # Discover and run all tests
+    # Note: Only files matching "test_*.py" are discovered
+    # Integration tests like doc_examples_test.py are excluded
     loader = unittest.TestLoader()
     suite = loader.discover("tests", pattern="test_*.py")
     
@@ -18,5 +20,6 @@ if __name__ == "__main__":
     
     # Exit with error code if tests failed
     sys.exit(0 if result.wasSuccessful() else 1)
+
 
 

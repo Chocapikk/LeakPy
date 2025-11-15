@@ -25,17 +25,25 @@ SOFTWARE.
 """Cache management for API responses."""
 
 import json
-import hashlib
 import time
 from pathlib import Path
-from .config import get_config_dir, CacheConfig
+from . import helpers
+from .config import CacheConfig
 
 
 class APICache:
     """Simple file-based cache for API responses."""
     
+    # ========================================================================
+    # CLASS CONSTANTS
+    # ========================================================================
+    
     CACHE_FILE = "api_cache.json"
     DEFAULT_TTL = 300  # 5 minutes in seconds (conservative default)
+    
+    # ========================================================================
+    # INITIALIZATION
+    # ========================================================================
     
     def __init__(self, ttl=None):
         """
@@ -45,42 +53,14 @@ class APICache:
             ttl (int, optional): Time to live for cache entries in seconds. 
                 If None, will try to load from config, otherwise defaults to 5 minutes (300 seconds).
         """
-        # Try to load TTL from config if not provided
-        if ttl is None:
-            cache_config = CacheConfig()
-            ttl_minutes = cache_config.get_ttl_minutes()
-            if ttl_minutes is not None:
-                ttl = ttl_minutes * 60  # Convert minutes to seconds
-            else:
-                ttl = self.DEFAULT_TTL
-        self.ttl = ttl
-        self.cache_dir = get_config_dir()
+        self.ttl = self._determine_ttl(ttl)
+        self.cache_dir = helpers.get_config_dir()
         self.cache_file = self.cache_dir / self.CACHE_FILE
         self._cache = self._load_cache()
     
-    def _load_cache(self):
-        """Load cache from file."""
-        try:
-            if self.cache_file.exists():
-                with open(self.cache_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-        except (IOError, json.JSONDecodeError):
-            pass
-        return {}
-    
-    def _save_cache(self):
-        """Save cache to file."""
-        try:
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
-            with open(self.cache_file, 'w', encoding='utf-8') as f:
-                json.dump(self._cache, f, indent=2)
-        except (IOError, OSError):
-            pass
-    
-    def _make_key(self, endpoint, params=None):
-        """Generate a cache key from endpoint and params."""
-        key_data = f"{endpoint}:{json.dumps(params or {}, sort_keys=True)}"
-        return hashlib.sha256(key_data.encode('utf-8')).hexdigest()
+    # ========================================================================
+    # PUBLIC API
+    # ========================================================================
     
     def get(self, endpoint, params=None):
         """
@@ -98,12 +78,8 @@ class APICache:
             return None
         
         entry = self._cache[key]
-        # Use entry-specific TTL if available, otherwise use default
-        entry_ttl = entry.get('ttl', self.ttl)
-        if time.time() - entry['timestamp'] > entry_ttl:
-            # Expired, remove it
-            del self._cache[key]
-            self._save_cache()
+        if self._is_entry_expired(entry):
+            self._remove_entry_and_save(key)
             return None
         
         return entry['data']
@@ -133,16 +109,60 @@ class APICache:
     def clear(self):
         """Clear all cache entries."""
         self._cache = {}
-        try:
-            if self.cache_file.exists():
-                self.cache_file.unlink()
-        except (IOError, OSError):
-            pass
+        helpers.delete_file_safe(self.cache_file)
     
     def invalidate(self, endpoint, params=None):
         """Invalidate a specific cache entry."""
         key = self._make_key(endpoint, params)
         if key in self._cache:
-            del self._cache[key]
-            self._save_cache()
+            self._remove_entry_and_save(key)
+    
+    # ========================================================================
+    # PRIVATE: INITIALIZATION HELPERS
+    # ========================================================================
+    
+    def _determine_ttl(self, ttl):
+        """Determine TTL value from parameter or config."""
+        if ttl is not None:
+            return ttl
+        cache_config = CacheConfig()
+        ttl_minutes = cache_config.get_ttl_minutes()
+        return (ttl_minutes * 60) if ttl_minutes is not None else self.DEFAULT_TTL
+    
+    # ========================================================================
+    # PRIVATE: FILE OPERATIONS
+    # ========================================================================
+    
+    @helpers.handle_file_errors(default_return={})
+    def _load_cache(self):
+        """Load cache from file."""
+        if self.cache_file.exists():
+            with open(self.cache_file, 'r', encoding=helpers._ENCODING_UTF8) as f:
+                return json.load(f)
+        return {}
+    
+    @helpers.handle_file_errors()
+    def _save_cache(self):
+        """Save cache to file."""
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        with open(self.cache_file, 'w', encoding=helpers._ENCODING_UTF8) as f:
+            json.dump(self._cache, f, indent=2)
+    
+    # ========================================================================
+    # PRIVATE: CACHE ENTRY OPERATIONS
+    # ========================================================================
+    
+    def _make_key(self, endpoint, params=None):
+        """Generate a cache key from endpoint and params."""
+        return helpers.make_hash_key(endpoint, params)
+    
+    def _is_entry_expired(self, entry):
+        """Check if cache entry is expired."""
+        entry_ttl = entry.get('ttl', self.ttl)
+        return time.time() - entry['timestamp'] > entry_ttl
+    
+    def _remove_entry_and_save(self, key):
+        """Remove cache entry and save cache."""
+        del self._cache[key]
+        self._save_cache()
 

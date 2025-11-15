@@ -24,19 +24,66 @@ SOFTWARE.
 
 """Main scraper class for LeakPy."""
 
-import json
-import time
-import logging
 import sys
+import time
 
-from .config import APIKeyManager
-from .api import LeakIXAPI
-from .parser import get_all_fields, process_and_format_data
-from .logger import setup_logger
-
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
+from . import helpers
+from .api import LeakIXAPI
+from .config import APIKeyManager
+from .logger import setup_logger
+from .helpers import ensure_api_initialized, process_and_format_data
+
+
+# ============================================================================
+# HELPER CLASSES
+# ============================================================================
+
+class DotNotationObject:
+    """
+    Generic wrapper class that converts dictionaries to objects with dot notation access.
+    
+    Example:
+        obj = DotNotationObject({"Services": [...], "Leaks": [...]})
+        print(obj.Services)  # Access with dot notation
+    """
+    
+    def __init__(self, data):
+        """
+        Initialize DotNotationObject with a dictionary.
+        
+        Args:
+            data (dict): Dictionary to convert to object with dot notation.
+        """
+        if isinstance(data, dict):
+            for key, value in data.items():
+                setattr(self, key, self._convert_value(value))
+        else:
+            self._data = data
+    
+    def _convert_value(self, value):
+        """Convert value to DotNotationObject if it's a dict, otherwise return as-is."""
+        if isinstance(value, dict):
+            return DotNotationObject(value)
+        elif isinstance(value, list):
+            return [self._convert_value(item) for item in value]
+        return value
+    
+    def __getattr__(self, name):
+        """Return None for missing attributes to allow safe chaining."""
+        return None
+    
+    def __repr__(self):
+        """String representation for debugging."""
+        attrs = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        return f"DotNotationObject({attrs})"
+
+
+# ============================================================================
+# MAIN CLASS
+# ============================================================================
 
 class LeakIX:
     """Main class for interacting with LeakIX API."""
@@ -50,13 +97,10 @@ class LeakIX:
             silent (bool, optional): Flag to suppress all output (no logs, no progress bar). Defaults to True.
         """
         self.silent = silent
-        self.logger = setup_logger("LeakPy", verbose=False)
+        self.logger = setup_logger(helpers._DEFAULT_LOGGER_NAME, verbose=False)
         self.key_manager = APIKeyManager()
 
-        if api_key:
-            api_key_read = api_key
-        else:
-            api_key_read = self.key_manager.read() or self.key_manager.migrate_old_location()
+        api_key_read = api_key or (self.key_manager.read() or self.key_manager.migrate_old_location())
         self.api_key = (api_key_read or "").strip()
         if api_key:
             self.key_manager.save(self.api_key)
@@ -72,15 +116,42 @@ class LeakIX:
             message (str): Message to log.
             level (str): Log level (info, debug, warning, error).
         """
-        if message is None:
-            message = ""
-        log_func = getattr(self.logger, level.lower(), self.logger.info)
-        log_func(str(message))
+        normalized_message = str(message or "")
+        log_func = helpers.get_log_function(self.logger, level)
+        log_func(normalized_message)
 
     def has_api_key(self):
         """Check if an API key is available and valid (48 characters)."""
         self.api_key = self.api_key or self.key_manager.read()
         return self.key_manager.is_valid(self.api_key)
+    
+    
+    def _create_console_for_progress(self):
+        """Create console for rich progress output."""
+        return Console(file=sys.stderr if hasattr(sys, 'stderr') else None)
+    
+    def _suppress_debug_logging(self):
+        """Suppress debug logging and return original level."""
+        original_level = self.logger.level
+        self.logger.setLevel(20)  # logging.INFO
+        return original_level
+    
+    def _restore_logging_level(self, original_level):
+        """Restore original logging level."""
+        self.logger.setLevel(original_level)
+    
+    def _should_use_progress_bulk(self, return_data_only, output_file):
+        """Check if progress should be shown in bulk mode."""
+        return not return_data_only and not self.silent and not output_file
+    
+    def _should_use_progress(self, return_data_only):
+        """Check if progress should be shown in regular mode."""
+        return not return_data_only and not self.silent
+    
+    def _rate_limit_sleep(self, is_cached):
+        """Sleep for rate limit if not cached."""
+        if not is_cached:
+            time.sleep(helpers._RATE_LIMIT_SLEEP)
 
     def save_api_key(self, api_key):
         """
@@ -92,7 +163,7 @@ class LeakIX:
         self.key_manager.save(api_key)
         self.api_key = api_key
         # Reinitialize API client with new key
-        self.api = LeakIXAPI(self.api_key, False, self.log)
+        self.api = ensure_api_initialized(None, self.api_key, self.log)
     
     def delete_api_key(self):
         """Delete the stored API key from secure storage."""
@@ -109,7 +180,7 @@ class LeakIX:
         Get cache statistics.
         
         Returns:
-            dict: Dictionary containing cache statistics with keys:
+            DotNotationObject: Object containing cache statistics with attributes:
                 - total_entries (int): Total number of cache entries
                 - active_entries (int): Number of active (non-expired) entries
                 - expired_entries (int): Number of expired entries
@@ -124,7 +195,7 @@ class LeakIX:
         Example:
             >>> client = LeakIX()
             >>> stats = client.get_cache_stats()
-            >>> print(f"Cache has {stats['total_entries']} entries")
+            >>> print(f"Cache has {stats.total_entries} entries")
         """
         from .cache import APICache
         from .config import CacheConfig
@@ -168,7 +239,7 @@ class LeakIX:
             stats['oldest_entry_age'] = max(entry_ages)
             stats['newest_entry_age'] = min(entry_ages)
         
-        return stats
+        return DotNotationObject(stats)
     
     def clear_cache(self):
         """
@@ -224,11 +295,10 @@ class LeakIX:
         Analyze query results and extract statistics.
         
         Args:
-            results (list): List of results (dicts or l9event objects) to analyze.
-            fields (str, list, dict, or callable, optional): Fields to analyze. Can be:
+            results (list): List of results (dicts or L9Event objects) to analyze.
+            fields (str or list, optional): Fields to analyze. Can be:
                 - str: Comma-separated field paths (e.g., "protocol,geoip.country_name")
-                - list: List of field paths (strings) or callables
-                - dict: Mapping of field names to callables (object-oriented approach)
+                - list: List of field paths (strings)
                 - None: Uses default fields
             top (int, optional): Maximum number of top values to return per field.
                                 Defaults to 10.
@@ -247,20 +317,9 @@ class LeakIX:
             
                 stats = client.analyze_query_stats(results, fields='protocol,port')
             
-            Using object-oriented approach with callables::
+            Using list of field paths::
             
-                stats = client.analyze_query_stats(results, fields={
-                    'country': lambda leak: leak.geoip.country_name if leak.geoip else None,
-                    'protocol': lambda leak: leak.protocol,
-                    'port': lambda leak: leak.port
-                })
-            
-            Using list of callables::
-            
-                stats = client.analyze_query_stats(results, fields=[
-                    lambda leak: leak.protocol,
-                    lambda leak: leak.geoip.country_name if leak.geoip else None
-                ])
+                stats = client.analyze_query_stats(results, fields=['protocol', 'geoip.country_name'])
         """
         from .stats import analyze_query_results
         
@@ -269,20 +328,62 @@ class LeakIX:
         
         # Limit to top N values per field
         if top > 0:
-            # Convert to dict for manipulation, then back to QueryStats
-            stats_dict = stats.to_dict()
-            for field_name in stats_dict['fields']:
-                field_stats = stats_dict['fields'][field_name]
-                # Sort by count (descending) and keep only top N
-                sorted_items = sorted(field_stats.items(), key=lambda x: x[1], reverse=True)
-                stats_dict['fields'][field_name] = dict(sorted_items[:top])
-            
-            # Convert back to QueryStats object
-            from .stats import QueryStats
-            stats = QueryStats(stats_dict)
+            stats = self._limit_stats_to_top(stats, top)
         
         return stats
     
+    def _limit_stats_to_top(self, stats, top):
+        """Limit stats to top N values per field."""
+        def _limit_nested_dict(fields_dict):
+            """Recursively limit nested dict to top N values."""
+            result = {}
+            for key, value in fields_dict.items():
+                if isinstance(value, dict):
+                    # Check if this dict contains counts (non-dict values)
+                    if helpers.has_counts(value):
+                        # This is a leaf dict with counts, limit to top N
+                        sorted_items = sorted(value.items(), key=lambda x: x[1], reverse=True)
+                        result[key] = dict(sorted_items[:top])
+                    else:
+                        # This is a nested dict, recurse
+                        result[key] = _limit_nested_dict(value)
+            return result
+        
+        stats_dict = stats.to_dict()
+        stats_dict['fields'] = _limit_nested_dict(stats_dict['fields'])
+        
+        from .stats import QueryStats
+        return QueryStats(stats_dict)
+    
+    def _process_services_and_leaks(self, data, fields, output_file):
+        """Process Services and Leaks from data and optionally write to file."""
+        services = []
+        if data.get("Services"):
+            processed_services = self.process_and_print_data(
+                data["Services"], 
+                fields, 
+                suppress_debug=self.silent
+            )
+            services = processed_services
+            if output_file:
+                for service in processed_services:
+                    helpers.write_json_line(output_file, service)
+        
+        leaks = []
+        if data.get("Leaks"):
+            processed_leaks = self.process_and_print_data(
+                data["Leaks"], 
+                fields, 
+                suppress_debug=self.silent
+            )
+            leaks = processed_leaks
+            if output_file:
+                for leak in processed_leaks:
+                    helpers.write_json_line(output_file, leak)
+        
+        return services, leaks
+    
+    @helpers.require_api_key
     def get_host(self, ip, fields="full", output=None):
         """
         Get host details for a specific IP address.
@@ -295,24 +396,20 @@ class LeakIX:
                                                    If None, results are only returned. Defaults to None.
         
         Returns:
-            dict: Dictionary with 'Services' and 'Leaks' keys, each containing a list of l9event objects.
+            DotNotationObject: Object with 'Services' and 'Leaks' attributes, each containing a list of L9Event objects.
                   Both can be None if no information was found.
         
         Example:
             >>> client = LeakIX()
             >>> host_info = client.get_host("157.90.211.37")
-            >>> print(f"Services: {len(host_info['Services'] or [])}")
-            >>> print(f"Leaks: {len(host_info['Leaks'] or [])}")
+            >>> print(f"Services: {len(host_info.Services or [])}")
+            >>> print(f"Leaks: {len(host_info.Leaks or [])}")
             >>> 
             >>> # Access service details
-            >>> if host_info['Services']:
-            ...     for service in host_info['Services']:
+            >>> if host_info.Services:
+            ...     for service in host_info.Services:
             ...         print(f"{service.protocol}://{service.ip}:{service.port}")
         """
-        if not self.has_api_key():
-            raise ValueError("A valid API key is required.")
-        
-        self.api = self.api or LeakIXAPI(self.api_key, False, self.log)
         
         # Get host details from API
         data, is_cached = self.api.get_host_details(ip, suppress_logs=self.silent)
@@ -320,72 +417,17 @@ class LeakIX:
         if not data:
             if not self.silent:
                 self.log(f"No information found for IP {ip}", "warning")
-            return {"Services": None, "Leaks": None}
+            return DotNotationObject({"Services": None, "Leaks": None})
         
-        # Handle output file
-        output_file = None
-        should_close_file = False
-        if output:
-            if isinstance(output, str):
-                try:
-                    output_file = open(output, "w", encoding="utf-8")
-                    should_close_file = True
-                    if not self.silent:
-                        self.log(f"Writing results to {output}...", "info")
-                except (IOError, OSError) as e:
-                    if not self.silent:
-                        self.log(f"Error opening output file {output}: {e}", "error")
-                    output_file = None
-            else:
-                output_file = output
-                if not self.silent:
-                    self.log("Writing results to stdout...", "info")
+        output_file, should_close_file = helpers.get_output_file(output, self.silent, self.log)
         
         try:
-            # Process Services
-            services = []
-            if data.get("Services"):
-                processed_services = self.process_and_print_data(
-                    data["Services"], 
-                    fields, 
-                    suppress_debug=self.silent
-                )
-                services = processed_services
-                
-                # Write to file if specified
-                if output_file:
-                    for service in processed_services:
-                        if hasattr(service, 'to_dict'):
-                            service_dict = service.to_dict()
-                        else:
-                            service_dict = service
-                        output_file.write(f"{json.dumps(service_dict)}\n")
-                    output_file.flush()
+            services, leaks = self._process_services_and_leaks(data, fields, output_file)
             
-            # Process Leaks
-            leaks = []
-            if data.get("Leaks"):
-                processed_leaks = self.process_and_print_data(
-                    data["Leaks"], 
-                    fields, 
-                    suppress_debug=self.silent
-                )
-                leaks = processed_leaks
-                
-                # Write to file if specified
-                if output_file:
-                    for leak in processed_leaks:
-                        if hasattr(leak, 'to_dict'):
-                            leak_dict = leak.to_dict()
-                        else:
-                            leak_dict = leak
-                        output_file.write(f"{json.dumps(leak_dict)}\n")
-                    output_file.flush()
-            
-            result = {
+            result = DotNotationObject({
                 "Services": services if services else None,
                 "Leaks": leaks if leaks else None
-            }
+            })
             
             if not self.silent and output_file:
                 self.log(f"✓ Completed - {len(services)} services, {len(leaks)} leaks", "info")
@@ -395,6 +437,7 @@ class LeakIX:
             if output_file and should_close_file:
                 output_file.close()
     
+    @helpers.require_api_key
     def get_domain(self, domain, fields="full", output=None):
         """
         Get domain details for a specific domain name.
@@ -407,24 +450,20 @@ class LeakIX:
                                                    If None, results are only returned. Defaults to None.
         
         Returns:
-            dict: Dictionary with 'Services' and 'Leaks' keys, each containing a list of l9event objects.
+            DotNotationObject: Object with 'Services' and 'Leaks' attributes, each containing a list of L9Event objects.
                   Both can be None if no information was found.
         
         Example:
             >>> client = LeakIX()
             >>> domain_info = client.get_domain("leakix.net")
-            >>> print(f"Services: {len(domain_info['Services'] or [])}")
-            >>> print(f"Leaks: {len(domain_info['Leaks'] or [])}")
+            >>> print(f"Services: {len(domain_info.Services or [])}")
+            >>> print(f"Leaks: {len(domain_info.Leaks or [])}")
             >>> 
             >>> # Access service details
-            >>> if domain_info['Services']:
-            ...     for service in domain_info['Services']:
+            >>> if domain_info.Services:
+            ...     for service in domain_info.Services:
             ...         print(f"{service.protocol}://{service.host}:{service.port}")
         """
-        if not self.has_api_key():
-            raise ValueError("A valid API key is required.")
-        
-        self.api = self.api or LeakIXAPI(self.api_key, False, self.log)
         
         # Get domain details from API
         data, is_cached = self.api.get_domain_details(domain, suppress_logs=self.silent)
@@ -432,72 +471,17 @@ class LeakIX:
         if not data:
             if not self.silent:
                 self.log(f"No information found for domain {domain}", "warning")
-            return {"Services": None, "Leaks": None}
+            return DotNotationObject({"Services": None, "Leaks": None})
         
-        # Handle output file
-        output_file = None
-        should_close_file = False
-        if output:
-            if isinstance(output, str):
-                try:
-                    output_file = open(output, "w", encoding="utf-8")
-                    should_close_file = True
-                    if not self.silent:
-                        self.log(f"Writing results to {output}...", "info")
-                except (IOError, OSError) as e:
-                    if not self.silent:
-                        self.log(f"Error opening output file {output}: {e}", "error")
-                    output_file = None
-            else:
-                output_file = output
-                if not self.silent:
-                    self.log("Writing results to stdout...", "info")
+        output_file, should_close_file = helpers.get_output_file(output, self.silent, self.log)
         
         try:
-            # Process Services
-            services = []
-            if data.get("Services"):
-                processed_services = self.process_and_print_data(
-                    data["Services"], 
-                    fields, 
-                    suppress_debug=self.silent
-                )
-                services = processed_services
-                
-                # Write to file if specified
-                if output_file:
-                    for service in processed_services:
-                        if hasattr(service, 'to_dict'):
-                            service_dict = service.to_dict()
-                        else:
-                            service_dict = service
-                        output_file.write(f"{json.dumps(service_dict)}\n")
-                    output_file.flush()
+            services, leaks = self._process_services_and_leaks(data, fields, output_file)
             
-            # Process Leaks
-            leaks = []
-            if data.get("Leaks"):
-                processed_leaks = self.process_and_print_data(
-                    data["Leaks"], 
-                    fields, 
-                    suppress_debug=self.silent
-                )
-                leaks = processed_leaks
-                
-                # Write to file if specified
-                if output_file:
-                    for leak in processed_leaks:
-                        if hasattr(leak, 'to_dict'):
-                            leak_dict = leak.to_dict()
-                        else:
-                            leak_dict = leak
-                        output_file.write(f"{json.dumps(leak_dict)}\n")
-                    output_file.flush()
-            
-            result = {
+            result = DotNotationObject({
                 "Services": services if services else None,
                 "Leaks": leaks if leaks else None
-            }
+            })
             
             if not self.silent and output_file:
                 self.log(f"✓ Completed - {len(services)} services, {len(leaks)} leaks", "info")
@@ -507,6 +491,24 @@ class LeakIX:
             if output_file and should_close_file:
                 output_file.close()
     
+    def _deduplicate_subdomains(self, subdomains):
+        """Deduplicate subdomains by subdomain name (keep first occurrence)."""
+        seen = set()
+        unique_subdomains = []
+        for subdomain in subdomains:
+            subdomain_name = subdomain.get('subdomain', '')
+            if subdomain_name and subdomain_name not in seen:
+                seen.add(subdomain_name)
+                unique_subdomains.append(subdomain)
+        return unique_subdomains
+    
+    def _check_rate_limit(self, data):
+        """Check if data indicates rate limiting and raise ValueError if so."""
+        if data and isinstance(data, dict) and data.get('_rate_limited'):
+            wait_seconds = data.get('_wait_seconds', 60)
+            raise ValueError(f"Rate limited. Wait {wait_seconds} seconds before retrying.")
+    
+    @helpers.require_api_key
     def get_subdomains(self, domain, output=None):
         """
         Get subdomains for a specific domain name.
@@ -517,8 +519,8 @@ class LeakIX:
                                                    If None, results are only returned. Defaults to None.
         
         Returns:
-            list: List of dictionaries containing subdomain information.
-                  Each dictionary has 'subdomain', 'distinct_ips', and 'last_seen' keys.
+            list: List of DotNotationObject containing subdomain information.
+                  Each object has 'subdomain', 'distinct_ips', and 'last_seen' attributes.
                   Returns empty list if no subdomains found or on error.
         
         Example:
@@ -526,68 +528,37 @@ class LeakIX:
             >>> subdomains = client.get_subdomains("leakix.net")
             >>> print(f"Found {len(subdomains)} subdomains")
             >>> 
-            >>> # Access subdomain details
+            >>> # Access subdomain details with dot notation
             >>> for subdomain in subdomains:
-            ...     print(f"{subdomain['subdomain']} - {subdomain['distinct_ips']} IPs")
+            ...     print(f"{subdomain.subdomain} - {subdomain.distinct_ips} IPs")
         """
-        if not self.has_api_key():
-            raise ValueError("A valid API key is required.")
-        
-        self.api = self.api or LeakIXAPI(self.api_key, False, self.log)
         
         # Get subdomains from API
         data, is_cached = self.api.get_subdomains(domain, suppress_logs=self.silent)
         
-        # Check for rate limiting
-        if data and isinstance(data, dict) and data.get('_rate_limited'):
-            raise ValueError(f"Rate limited. Wait {data.get('_wait_seconds', 60)} seconds before retrying.")
+        self._check_rate_limit(data)
         
         if not data:
             if not self.silent:
                 self.log(f"No subdomains found for domain {domain}", "warning")
             return []
         
-        # Deduplicate subdomains by subdomain name (keep first occurrence)
-        seen = set()
-        unique_subdomains = []
-        for subdomain in data:
-            subdomain_name = subdomain.get('subdomain', '')
-            if subdomain_name and subdomain_name not in seen:
-                seen.add(subdomain_name)
-                unique_subdomains.append(subdomain)
+        data = self._deduplicate_subdomains(data)
         
-        data = unique_subdomains
-        
-        # Handle output file
-        output_file = None
-        should_close_file = False
-        if output:
-            if isinstance(output, str):
-                try:
-                    output_file = open(output, "w", encoding="utf-8")
-                    should_close_file = True
-                    if not self.silent:
-                        self.log(f"Writing results to {output}...", "info")
-                except (IOError, OSError) as e:
-                    if not self.silent:
-                        self.log(f"Error opening output file {output}: {e}", "error")
-                    output_file = None
-            else:
-                output_file = output
-                if not self.silent:
-                    self.log("Writing results to stdout...", "info")
+        output_file, should_close_file = helpers.get_output_file(output, self.silent, self.log)
         
         try:
-            # Write to file if specified
             if output_file:
                 for subdomain in data:
-                    output_file.write(f"{json.dumps(subdomain)}\n")
-                output_file.flush()
+                    helpers.write_json_line(output_file, subdomain)
+            
+            # Convert list of dicts to list of DotNotationObject
+            result = [DotNotationObject(subdomain) for subdomain in data]
             
             if not self.silent and output_file:
-                self.log(f"✓ Completed - {len(data)} subdomains", "info")
+                self.log(f"✓ Completed - {len(result)} subdomains", "info")
             
-            return data
+            return result
         finally:
             if output_file and should_close_file:
                 output_file.close()
@@ -620,8 +591,9 @@ class LeakIX:
         Returns:
             list[str]: A list of field paths sorted alphabetically.
         """
-        return get_all_fields(data, current_path)
+        return helpers.get_all_fields_from_dict(data, current_path)
 
+    @helpers.require_api_key
     def search(
         self,
         scope="leak",
@@ -649,7 +621,7 @@ class LeakIX:
                                                    If None, results are only returned. Defaults to None.
 
         Returns:
-            list: A list of scraped results (l9event objects) based on the provided criteria.
+            list: A list of scraped results (L9Event objects) based on the provided criteria.
                   Results are always returned, even if `output` is specified.
         
         Examples:
@@ -665,45 +637,21 @@ class LeakIX:
             >>> client.search(scope="leak", query='+country:"France"', pages=2, output=sys.stdout)
         """
         plugins_list = self.get_plugins()
-        given_plugins = [p.strip() for p in plugin.split(",") if p.strip()]
+        given_plugins = [item.strip() for item in plugin.split(",") if item.strip()]
         invalid_plugins = [p for p in given_plugins if p not in set(plugins_list)]
         
         if invalid_plugins:
             raise ValueError(f"Invalid plugins: {', '.join(invalid_plugins)}. Valid plugins: {plugins_list}")
         
-        # Handle output: can be a string (file path) or a file object (e.g., sys.stdout)
-        output_file = None
-        should_close_file = False
-        if output:
-            if isinstance(output, str):
-                # It's a file path, open it
-                try:
-                    output_file = open(output, "w", encoding="utf-8")
-                    should_close_file = True
-                    if not self.silent:
-                        self.log(f"Writing results in real-time to {output}...", "info")
-                except (IOError, OSError) as e:
-                    if not self.silent:
-                        self.log(f"Error opening output file {output}: {e}", "error")
-                    output_file = None
-            else:
-                # It's already a file object (e.g., sys.stdout)
-                output_file = output
-                if not self.silent:
-                    self.log("Writing results to stdout...", "info")
+        output_file, should_close_file = helpers.get_output_file(output, self.silent, self.log)
+        if output_file and not self.silent:
+            self.log(f"Writing results in real-time to {output if isinstance(output, str) else 'stdout'}...", "info")
         
         try:
-            # Convert fields to string format if it's a list
-            fields_str = fields
-            if isinstance(fields, list):
-                fields_str = ",".join(fields)
-            elif fields is None:
-                fields_str = "protocol,ip,port"
-            
+            fields_str = helpers.normalize_fields(fields)
             results = self.query(scope, pages, query, given_plugins, fields_str, use_bulk, output_file=output_file)
             return results
         finally:
-            # Close the file only if we opened it (not if it was passed as a file object)
             if output_file and should_close_file:
                 output_file.close()
 
@@ -734,34 +682,12 @@ class LeakIX:
         Returns:
             list: List of processed strings or raw data based on `return_data_only` flag.
         """
-        if not self.has_api_key():
-            raise ValueError("A valid API key is required.")
-
-        self.api = self.api or LeakIXAPI(self.api_key, False, self.log)
         if self.api.is_api_pro is None:
             self.api.is_api_pro = self.api.check_privilege("WpUserEnumHttp", "leak")
 
         # Build query with plugins
         query_param = self.api.build_query_with_plugins(query_param, plugins)
-
-        def _write_result_to_file(result, output_file, fields):
-            """Write a single result to file."""
-            try:
-                # Handle l9event objects - convert to dict for JSON serialization
-                if hasattr(result, 'to_dict'):
-                    result_dict = result.to_dict()
-                else:
-                    result_dict = result
-                
-                if not fields and isinstance(result_dict, dict) and result_dict.get('url'):
-                    output_file.write(f"{result_dict.get('url')}\n")
-                else:
-                    output_file.write(f"{json.dumps(result_dict)}\n")
-                output_file.flush()
-                return True
-            except (IOError, OSError) as e:
-                self.log(f"Error writing to file: {e}", "warning")
-                return False
+        
         start_time = time.time()
         
         def log_execution_time():
@@ -779,13 +705,12 @@ class LeakIX:
                 self.api.verbose = False
             
             # Show spinner in bulk mode if not silent and not writing to file
-            use_progress = not return_data_only and not self.silent and not output_file
+            use_progress = self._should_use_progress_bulk(return_data_only, output_file)
             
             try:
                 if use_progress:
-                    console = Console(file=sys.stderr if hasattr(sys, 'stderr') else None)
-                    original_level = self.logger.level
-                    self.logger.setLevel(logging.INFO)
+                    console = self._create_console_for_progress()
+                    original_level = self._suppress_debug_logging()
                     
                     try:
                         with Progress(
@@ -812,14 +737,14 @@ class LeakIX:
                             # Write results to file if needed
                             if results and output_file:
                                 for result in results:
-                                    _write_result_to_file(result, output_file, fields)
+                                    helpers.write_result_item(output_file, result, fields)
                             
                             if results:
                                 progress.update(task, description=f"[green]✓ Found {len(results)} results")
                             
                             log_execution_time()
                     finally:
-                        self.logger.setLevel(original_level)
+                        self._restore_logging_level(original_level)
                 else:
                     data, is_cached = self.api.query_bulk(query_param, suppress_logs=bool(output_file))
                     if return_data_only:
@@ -830,7 +755,7 @@ class LeakIX:
                     # Write results to file if needed
                     if results and output_file:
                         for result in results:
-                            _write_result_to_file(result, output_file, fields)
+                            helpers.write_result_item(output_file, result, fields)
                 
                 # Restore silent state before showing completion message
                 if output_file:
@@ -853,18 +778,14 @@ class LeakIX:
         last_data = None
         
         # Show progress bar if not silent
-        use_progress = not return_data_only and not self.silent
+        use_progress = self._should_use_progress(return_data_only)
         
         if use_progress:
             # Create a console for rich output that won't conflict with logging
-            console = Console(file=sys.stderr if hasattr(sys, 'stderr') else None)
+            console = self._create_console_for_progress()
             
             # Temporarily disable debug logging to avoid conflicts with progress bar
-            original_level = self.logger.level
-            original_handlers = self.logger.handlers[:]
-            
-            # Set logger to INFO level to suppress DEBUG messages during progress bar
-            self.logger.setLevel(logging.INFO)
+            original_level = self._suppress_debug_logging()
             
             try:
                 with Progress(
@@ -892,7 +813,7 @@ class LeakIX:
                         results.extend(page_results)
                         if output_file:
                             for result in page_results:
-                                _write_result_to_file(result, output_file, fields)
+                                helpers.write_result_item(output_file, result, fields)
                         
                         # Update progress bar
                         progress.update(
@@ -902,8 +823,7 @@ class LeakIX:
                         )
                         
                         # Only respect rate limit if we made an actual API request
-                        if not is_cached:
-                            time.sleep(1.2)
+                        self._rate_limit_sleep(is_cached)
                     
                     # Final update
                     progress.update(
@@ -912,7 +832,7 @@ class LeakIX:
                     )
             finally:
                 # Restore original logging level
-                self.logger.setLevel(original_level)
+                self._restore_logging_level(original_level)
         else:
             # No progress bar, use simple logging
             for page in range(pages):
@@ -926,11 +846,10 @@ class LeakIX:
                 results.extend(page_results)
                 if output_file:
                     for result in page_results:
-                        _write_result_to_file(result, output_file, fields)
+                        helpers.write_result_item(output_file, result, fields)
                 
                 # Only respect rate limit if we made an actual API request
-                if not is_cached:
-                    time.sleep(1.2)
+                self._rate_limit_sleep(is_cached)
 
         log_execution_time()
         return last_data if return_data_only else results
