@@ -1,7 +1,7 @@
 Available Fields
 =================
 
-LeakPy supports 70 fields organized by category. All events are returned as ``L9Event`` objects that support dot notation access.
+LeakPy supports 82+ fields organized by category. All events are returned as ``L9Event`` objects that support dot notation access.
 
 .. note::
    The field structure follows the official `l9format schema <https://docs.leakix.net/docs/api/l9format/>`_ from LeakIX. 
