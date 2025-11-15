@@ -353,7 +353,7 @@ for field in sorted(fields):
     print(field)
 ```
 
-The field structure follows the official `l9format schema <https://docs.leakix.net/docs/api/l9format/>`_ from LeakIX:
+The field structure follows the official [l9format schema](https://docs.leakix.net/docs/api/l9format/) from LeakIX:
 - **Root**: `ip`, `port`, `protocol`, `host`, `event_type`, etc.
 - **GeoIP**: `geoip.country_name`, `geoip.city_name`, `geoip.location.lat`, etc.
 - **HTTP**: `http.status`, `http.title`, `http.header.server`, etc.
@@ -363,7 +363,7 @@ The field structure follows the official `l9format schema <https://docs.leakix.n
 - **SSH**: `ssh.version`, `ssh.banner`, etc.
 - **Network**: `network.asn`, `network.organization_name`, etc.
 
-See the `fields` documentation page for the complete list.
+See the [fields documentation page](https://leakpy.readthedocs.io/en/latest/fields.html) for the complete list.
 
 ## 📚 Documentation
 
