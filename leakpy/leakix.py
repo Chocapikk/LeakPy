@@ -275,11 +275,11 @@ class LeakIX:
         Examples:
             Using string field paths::
             
-                stats = client.analyze_query_stats(results, fields='protocol,port')
+                stats = client.analyze_query_stats(events, fields='protocol,port')
             
             Using list of field paths::
             
-                stats = client.analyze_query_stats(results, fields=['protocol', 'geoip.country_name'])
+                stats = client.analyze_query_stats(events, fields=['protocol', 'geoip.country_name'])
         """
         from .stats import analyze_query_results
         
@@ -558,9 +558,9 @@ class LeakIX:
             fields = client.get_all_fields()
             
             # Get fields from a specific event
-            results = client.search(scope="leak", query='+country:"France"', pages=1)
-            if results:
-                fields = client.get_all_fields(results[0])
+            events = client.search(scope="leak", query='+country:"France"', pages=1)
+            if events:
+                fields = client.get_all_fields(events[0])
         """
         if data is None:
             # Return fields from l9format schema (no API call needed)
@@ -600,13 +600,13 @@ class LeakIX:
                   Results are always returned, even if `output` is specified.
         
         Examples:
-            >>> # Get results only
-            >>> results = client.search(scope="leak", query='+country:"France"', pages=2)
-            >>> for leak in results:
-            ...     print(leak.ip)
+            >>> # Get events only
+            >>> events = client.search(scope="leak", query='+country:"France"', pages=2)
+            >>> for event in events:
+            ...     print(event.ip)
             
-            >>> # Write to file (results are still returned)
-            >>> results = client.search(scope="leak", query='+country:"France"', pages=2, output="results.txt")
+            >>> # Write to file (events are still returned)
+            >>> events = client.search(scope="leak", query='+country:"France"', pages=2, output="results.txt")
             
             >>> # Write to stdout (for piping)
             >>> client.search(scope="leak", query='+country:"France"', pages=2, output=sys.stdout)
