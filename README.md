@@ -98,7 +98,7 @@ For detailed CLI documentation, see the `docs/cli.rst` file or run ``leakpy COMM
 | `leakpy lookup domain` | `client.get_domain()` |
 | `leakpy lookup subdomains` | `client.get_subdomains()` |
 | `leakpy list plugins` | `client.get_plugins()` |
-| `leakpy list fields` | `client.get_all_fields()` + `client.search()` |
+| `leakpy list fields` | `client.get_all_fields()` |
 | `leakpy config set` | `client.save_api_key()` |
 | `leakpy cache clear` | `client.clear_cache()` |
 | `leakpy cache set-ttl` | `client.set_cache_ttl(minutes)` |
