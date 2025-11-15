@@ -27,6 +27,8 @@ CLI Mapping
 +----------------------------+--------------------------+
 | ``leakpy list plugins``    | ``client.get_plugins()`` |
 +----------------------------+--------------------------+
+| ``leakpy list fields``     | ``client.get_all_fields()`` |
++----------------------------+--------------------------+
 | ``leakpy config set``      | ``client.save_api_key()`` |
 +----------------------------+--------------------------+
 | ``leakpy cache clear``     | ``client.clear_cache()`` |
