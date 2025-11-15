@@ -122,9 +122,9 @@ for field in sorted(fields):
     print(field)
 
 # Or get fields from a specific event
-results = client.search(scope="leak", query='+country:"France"', pages=1, fields="full")
-if results:
-    fields = client.get_all_fields(results[0])
+events = client.search(scope="leak", query='+country:"France"', pages=1, fields="full")
+if events:
+    fields = client.get_all_fields(events[0])
     for field in sorted(fields):
         print(field)
 ```
@@ -144,7 +144,7 @@ The `LeakIX` class offers a direct and user-friendly interface to the LeakIX API
 
 **Retrieving Results:**
 
-Results are returned as ``L9Event`` objects that support dot notation access. Use ``search()`` to get results. If you specify ``output``, results are written to a file but still returned.
+Results are returned as ``L9Event`` objects that support dot notation access. Use ``search()`` to get events. If you specify ``output``, events are written to a file but still returned.
 
 ```python
 from leakpy import LeakIX
@@ -155,8 +155,8 @@ client = LeakIX()
 # Enable logs and progress bars
 client = LeakIX(silent=False)
 
-# Get results as L9Event objects
-results = client.search(
+# Get events as L9Event objects
+events = client.search(
     scope="leak",
     query='+country:"France"',
     pages=5,
@@ -164,11 +164,11 @@ results = client.search(
 )
 
 # Access fields using dot notation
-for leak in results:
-    protocol = leak.protocol  # "http"
-    ip = leak.ip              # "1.2.3.4"
-    port = leak.port          # 80
-    host = leak.host          # "example.com"
+for event in events:
+    protocol = event.protocol  # "http"
+    ip = event.ip              # "1.2.3.4"
+    port = event.port          # 80
+    host = event.host          # "example.com"
     
     # Build URL
     if protocol and ip and port:
@@ -182,30 +182,30 @@ Access nested fields using dot notation:
 
 ```python
 # Get full JSON to access all nested fields
-results = client.search(
+events = client.search(
     scope="leak",
     query='+country:"France"',
     pages=2,
     fields="full"
 )
 
-for leak in results:
+for event in events:
     # Root fields
-    print(f"IP: {leak.ip}, Port: {leak.port}")
+    print(f"IP: {event.ip}, Port: {event.port}")
     
     # GeoIP fields
-    if leak.geoip:
-        print(f"Country: {leak.geoip.country_name}")
-        print(f"City: {leak.geoip.city_name}")
+    if event.geoip:
+        print(f"Country: {event.geoip.country_name}")
+        print(f"City: {event.geoip.city_name}")
     
     # HTTP fields
-    if leak.http:
-        print(f"HTTP Status: {leak.http.status}")
-        print(f"HTTP Title: {leak.http.title}")
+    if event.http:
+        print(f"HTTP Status: {event.http.status}")
+        print(f"HTTP Title: {event.http.title}")
     
     # SSL fields
-    if leak.ssl and leak.ssl.certificate:
-        print(f"SSL CN: {leak.ssl.certificate.cn}")
+    if event.ssl and event.ssl.certificate:
+        print(f"SSL CN: {event.ssl.certificate.cn}")
 ```
 
 **Host Details:**
@@ -319,15 +319,15 @@ from leakpy import LeakIX
 
 client = LeakIX()
 
-# Search for results
-results = client.search(
+# Search for events
+events = client.search(
     scope="leak",
     query='+country:"France"',
     pages=5
 )
 
 # Simple approach using field paths
-stats = client.analyze_query_stats(results, fields='geoip.country_name,protocol')
+stats = client.analyze_query_stats(events, fields='geoip.country_name,protocol')
 
 # Use dot notation
 print(f"Total results: {stats.total}")
@@ -336,7 +336,7 @@ print(f"HTTP: {stats.fields.protocol.http} services")
 print(f"HTTPS: {stats.fields.protocol.https} services")
 
 # Analyze all fields
-all_stats = client.analyze_query_stats(results, all_fields=True)
+all_stats = client.analyze_query_stats(events, all_fields=True)
 print(f"Found {len(all_stats.fields.to_dict())} different field types")
 ```
 
