@@ -51,6 +51,7 @@ results.txt
 .DS_Store
 
 # Documentation
+_build/
 docs/_build/
 docs/.doctrees/
 
