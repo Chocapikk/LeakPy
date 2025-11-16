@@ -427,6 +427,9 @@ for event in events:
     if count >= 2000:
         break
 
+# HTTP connection is automatically closed when generator is garbage collected
+# For immediate closure, you can explicitly call: events.close()
+
 elapsed = time.time() - start_time
 print(f"Processed {count} results in {elapsed:.2f} seconds")
 print(f"Speed: {count/elapsed:.1f} results/second")
@@ -439,6 +442,8 @@ print(f"Speed: {count/elapsed:.1f} results/second")
 # Processed 2000 results in 5.29 seconds
 # Speed: 378.4 results/second
 ```
+
+**Note:** When you stop early with a `break`, the HTTP connection is automatically closed when the generator is garbage collected (which happens automatically in Python). For immediate closure to stop fetching data right away, you can explicitly call `events.close()` after the break.
 
 **Available Fields:**
 

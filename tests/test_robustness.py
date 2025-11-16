@@ -527,6 +527,69 @@ class TestRobustness(unittest.TestCase):
 
     # ========== Memory Tests ==========
 
+    def test_generator_early_stop_closes_connection(self):
+        """Test that HTTP connection is closed when generator is stopped early."""
+        import requests
+        import threading
+        import time
+        
+        # Use httpbin to create a streaming endpoint
+        # We'll create a simple mock server response that streams data
+        # For this test, we'll mock the make_api_request to return a streaming response
+        
+        # Create a mock response that simulates streaming
+        class MockStreamResponse:
+            def __init__(self):
+                self.closed = False
+                # Generate 3000 lines to simulate a large stream
+                self.lines = iter([
+                    f'{{"events": [{{"ip": "1.2.3.{i % 255}", "port": 80}}]}}\n'
+                    for i in range(3000)
+                ])
+            
+            def iter_lines(self, decode_unicode=True):
+                for line in self.lines:
+                    if self.closed:
+                        break
+                    yield line.encode() if not decode_unicode else line
+            
+            def close(self):
+                self.closed = True
+        
+        mock_response = MockStreamResponse()
+        
+        # Clear cache to ensure we make a real API call
+        self.client.clear_cache()
+        
+        # Mock get_plugins to avoid API call
+        with patch.object(self.client, 'get_plugins', return_value=[]):
+            # Mock the API to return our mock response
+            with patch.object(self.client.api, 'is_api_pro', True):
+                def make_request(*args, **kwargs):
+                    return mock_response
+                
+                with patch('leakpy.leakix.helpers.make_api_request', side_effect=make_request):
+                    # Create generator
+                    events = self.client.search(scope="leak", query="test", use_bulk=True)
+                    
+                    # Consume 2000 events then break (simulating early stop)
+                    count = 0
+                    for event in events:
+                        count += 1
+                        if count >= 2000:
+                            break
+                    
+                    # Explicitly close the generator to trigger GeneratorExit
+                    # This simulates what happens when the generator is garbage collected
+                    # or when the user explicitly stops consuming it
+                    events.close()
+                    
+                    # Verify that the response was closed
+                    # The try/finally should have closed it when GeneratorExit was raised
+                    self.assertTrue(mock_response.closed, 
+                                  "Response should be closed when generator is stopped early")
+                    self.assertEqual(count, 2000, "Should have consumed exactly 2000 events")
+
     def test_memory_cleanup(self):
         """Test that memory is cleaned up properly."""
         import gc

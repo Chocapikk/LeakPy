@@ -37,24 +37,28 @@ run_test() {
 echo "=========================================="
 echo "TEST 1: search sans --raw/--silent"
 echo "=========================================="
+leakpy cache clear > /dev/null 2>&1
 run_test "leakpy search -q 'plugin:TraccarPlugin' -p 1"
 
 echo ""
 echo "=========================================="
 echo "TEST 2: search avec --raw"
 echo "=========================================="
+leakpy cache clear > /dev/null 2>&1
 run_test "leakpy --raw search -q 'plugin:TraccarPlugin' -p 1"
 
 echo ""
 echo "=========================================="
 echo "TEST 3: search avec --silent"
 echo "=========================================="
+leakpy cache clear > /dev/null 2>&1
 run_test "leakpy --silent search -q 'plugin:TraccarPlugin' -p 1"
 
 echo ""
 echo "=========================================="
 echo "TEST 4: search avec --raw --silent"
 echo "=========================================="
+leakpy cache clear > /dev/null 2>&1
 run_test "leakpy --raw --silent search -q 'plugin:TraccarPlugin' -p 1"
 
 echo ""
@@ -109,18 +113,21 @@ echo ""
 echo "=========================================="
 echo "TEST 13: lookup host sans --raw/--silent"
 echo "=========================================="
+leakpy cache clear > /dev/null 2>&1
 run_test "leakpy lookup host 8.8.8.8 --limit 5"
 
 echo ""
 echo "=========================================="
 echo "TEST 14: lookup host avec --raw"
 echo "=========================================="
+leakpy cache clear > /dev/null 2>&1
 run_test "leakpy --raw lookup host 8.8.8.8 --limit 5"
 
 echo ""
 echo "=========================================="
 echo "TEST 15: lookup host avec --silent"
 echo "=========================================="
+leakpy cache clear > /dev/null 2>&1
 run_test "leakpy --silent lookup host 8.8.8.8 --limit 5"
 
 echo ""

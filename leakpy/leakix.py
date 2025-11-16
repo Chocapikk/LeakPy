@@ -622,9 +622,11 @@ class LeakIX:
             self.log("Opting for bulk search due to the availability of a Pro API Key.", "info")
         
         # Make streaming request
+        # Use None for log_func if silent to suppress logs
+        log_func = None if self.silent else self.log
         response = helpers.make_api_request(
             self.api.BASE_URL, endpoint, self.api.api_key,
-            params=params, stream=True, include_accept=False, log_func=self.log
+            params=params, stream=True, include_accept=False, log_func=log_func
         )
         
         if not response:
@@ -636,39 +638,48 @@ class LeakIX:
         else:
             fields_list = [f.strip() for f in fields.split(",")]
         
+        # Don't log in silent mode
         logger = None if self.silent else self.log
         is_full = _PARSER_FULL_FIELD_REQUEST in fields_list
         all_events = []  # For caching later
         
-        # Stream and process events line by line
-        for line in response.iter_lines(decode_unicode=True):
-            if not line:
-                continue
-            
-            text = line.strip()
-            if not text or not (text.startswith('{') or text.startswith('[')):
-                continue
-            
-            try:
-                parsed = json.loads(text)
-                if isinstance(parsed, dict) and "events" in parsed:
-                    events_list = parsed.get("events", [])
-                    if events_list:
-                        all_events.extend(events_list)
-                        
-                        # Process and yield each event immediately
-                        for entry in events_list:
-                            event = convert_to_l9event(entry) if is_full else extract_from_single_entry(entry, fields_list)
+        try:
+            # Stream and process events line by line
+            for line in response.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                
+                text = line.strip()
+                if not text or not (text.startswith('{') or text.startswith('[')):
+                    continue
+                
+                try:
+                    parsed = json.loads(text)
+                    if isinstance(parsed, dict) and "events" in parsed:
+                        events_list = parsed.get("events", [])
+                        if events_list:
+                            all_events.extend(events_list)
                             
-                            if logger:
-                                log_result_items([event], logger, is_l9event_instance, to_dict_if_l9event)
-                            
-                            if output_file:
-                                helpers.write_result_item(output_file, event, fields)
-                            
-                            yield event
-            except (json.JSONDecodeError, TypeError):
-                continue
+                            # Process and yield each event immediately
+                            for entry in events_list:
+                                event = convert_to_l9event(entry) if is_full else extract_from_single_entry(entry, fields_list)
+                                
+                                if logger:
+                                    log_result_items([event], logger, is_l9event_instance, to_dict_if_l9event)
+                                
+                                if output_file:
+                                    helpers.write_result_item(output_file, event, fields)
+                                
+                                yield event
+                except (json.JSONDecodeError, TypeError):
+                    continue
+        except GeneratorExit:
+            # Generator was closed (e.g., break in loop) - close connection immediately
+            response.close()
+            raise
+        finally:
+            # Always close response when generator finishes
+            response.close()
         
         # Save to cache for future use
         if all_events:
@@ -740,6 +751,13 @@ class LeakIX:
         - **Bulk mode** (`use_bulk=True`): Events are streamed line by line from the HTTP response using
           true HTTP streaming. Events are parsed and yielded as they arrive from the server.
           **Note:** In bulk mode, the `pages` parameter is ignored as all results are retrieved automatically.
+        
+        **Connection Management:**
+        
+        When you stop consuming the generator early (e.g., using `break`), the HTTP connection is
+        automatically closed when the generator is garbage collected (which happens automatically in Python).
+        This prevents unnecessary bandwidth and API quota consumption. For immediate closure, you can
+        explicitly call `generator.close()` after stopping the loop.
         
         Optionally writes them to a file if `output` is specified.
 
