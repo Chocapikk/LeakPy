@@ -12,7 +12,7 @@
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/leakpy?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/leakpy) [![Official Client Downloads](https://static.pepy.tech/personalized-badge/leakix?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=BLUE&left_text=official)](https://pepy.tech/projects/leakix)
 [![Python 3.9-3.12](https://img.shields.io/badge/python-3.9--3.12-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![CI](https://github.com/Chocapikk/LeakPy/actions/workflows/tests.yml/badge.svg)](https://github.com/Chocapikk/LeakPy/actions/workflows/tests.yml)
+[![CI](https://github.com/Chocapikk/LeakPy/actions/workflows/ci.yml/badge.svg)](https://github.com/Chocapikk/LeakPy/actions/workflows/ci.yml)
 [![Documentation](https://readthedocs.org/projects/leakpy/badge/?version=latest)](https://leakpy.readthedocs.io/)
 
 LeakPy is a third-party client designed to seamlessly interact with the LeakIX API using Python.

@@ -123,8 +123,8 @@ class TestSubdomains(unittest.TestCase):
 
     def test_get_subdomains_with_output_file(self):
         """Test get_subdomains with output file."""
-        import tempfile
         import os
+        from pathlib import Path
         
         mock_data = [
             {
@@ -135,23 +135,24 @@ class TestSubdomains(unittest.TestCase):
         ]
         
         with patch.object(self.client.api, 'get_subdomains', return_value=(mock_data, False)):
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
-                temp_file = f.name
+            # Write to example_outputs directory
+            example_outputs_dir = Path(__file__).parent.parent / "example_outputs"
+            example_outputs_dir.mkdir(exist_ok=True)
+            output_file = example_outputs_dir / "test_subdomains.json"
             
-            try:
-                result = self.client.get_subdomains("example.com", output=temp_file)
-                
-                # Check that file was created and has content
-                self.assertTrue(os.path.exists(temp_file))
-                with open(temp_file, 'r') as f:
-                    content = f.read()
-                    self.assertIn('www.example.com', content)
-                
-                self.assertIsNotNone(result)
-                self.assertEqual(len(result), 1)
-            finally:
-                if os.path.exists(temp_file):
-                    os.unlink(temp_file)
+            result = self.client.get_subdomains("example.com", output=str(output_file))
+            
+            # Check that file was created and has content
+            self.assertTrue(output_file.exists())
+            with open(output_file, 'r') as f:
+                content = f.read()
+                self.assertIn('www.example.com', content)
+            
+            self.assertIsNotNone(result)
+            self.assertEqual(len(result), 1)
+            # Clean up test file
+            if output_file.exists():
+                output_file.unlink()
 
     def test_get_subdomains_invalid_response(self):
         """Test get_subdomains with invalid response format."""

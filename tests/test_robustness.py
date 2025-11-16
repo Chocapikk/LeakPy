@@ -399,17 +399,19 @@ class TestRobustness(unittest.TestCase):
 
     def test_output_file_permissions(self):
         """Test that file permissions are handled correctly."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
-            tmp_path = tmp.name
-        try:
-            # Mock the API to avoid actual network calls
-            with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-                result = list(self.client.search(output=tmp_path, pages=1))
-                self.assertIsInstance(result, list)
-                # File might be created even with no results
-        finally:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+        from pathlib import Path
+        # Write to example_outputs directory
+        example_outputs_dir = Path(__file__).parent.parent / "example_outputs"
+        example_outputs_dir.mkdir(exist_ok=True)
+        output_file = example_outputs_dir / "test_output.txt"
+        # Mock the API to avoid actual network calls
+        with patch.object(self.client.api, 'query_search', return_value=(None, False)):
+            result = list(self.client.search(output=str(output_file), pages=1))
+            self.assertIsInstance(result, list)
+            # File might be created even with no results
+        # Clean up test file
+        if output_file.exists():
+            output_file.unlink()
 
     # ========== Cache Robustness Tests ==========
 
@@ -629,16 +631,14 @@ class TestRobustness(unittest.TestCase):
 
     def test_unicode_in_output_path(self):
         """Test that Unicode in output path is handled."""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='测试.txt') as tmp:
-            tmp_path = tmp.name
-        try:
+        # Use temporary directory to ensure files are created in tmp
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = os.path.join(tmpdir, "测试.txt")
             # Mock the API to avoid actual network calls
             with patch.object(self.client.api, 'query_search', return_value=(None, False)):
                 result = list(self.client.search(output=tmp_path, pages=1))
                 self.assertIsInstance(result, list)
-        finally:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
+            # File is automatically deleted when tmpdir context exits
 
 
 if __name__ == "__main__":

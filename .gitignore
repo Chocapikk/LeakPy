@@ -38,6 +38,9 @@ MANIFEST
 htmlcov/
 .tox/
 .hypothesis/
+test/
+test.txt
+results.txt
 
 # IDEs
 .vscode/
@@ -51,7 +54,22 @@ htmlcov/
 docs/_build/
 docs/.doctrees/
 
-# Test files
-test/
-test.txt
-results.txt
+# Result files (JSON/TXT outputs) - ignore all, then allow specific files
+*.json
+*.txt
+
+# Allow essential project files
+!requirements.txt
+!requirements-docs.txt
+!README.md
+!CHANGELOG.md
+!LICENSE.rst
+!SECURITY.md
+!EXAMPLES.md
+!setup.py
+!MANIFEST.in
+
+# Allow example outputs directory
+!example_outputs/
+!example_outputs/**/*.json
+!example_outputs/**/*.txt

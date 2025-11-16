@@ -160,8 +160,8 @@ class TestHostDetails(unittest.TestCase):
 
     def test_get_host_with_output_file(self):
         """Test get_host with output file."""
-        import tempfile
         import os
+        from pathlib import Path
         
         mock_data = {
             "Services": [
@@ -171,22 +171,23 @@ class TestHostDetails(unittest.TestCase):
         }
         
         with patch.object(self.client.api, 'get_host_details', return_value=(mock_data, False)):
-            with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
-                temp_file = f.name
+            # Write to example_outputs directory
+            example_outputs_dir = Path(__file__).parent.parent / "example_outputs"
+            example_outputs_dir.mkdir(exist_ok=True)
+            output_file = example_outputs_dir / "test_host_details.json"
             
-            try:
-                result = self.client.get_host("1.2.3.4", output=temp_file)
-                
-                # Check that file was created and has content
-                self.assertTrue(os.path.exists(temp_file))
-                with open(temp_file, 'r') as f:
-                    content = f.read()
-                    self.assertIn('1.2.3.4', content)
-                
-                self.assertIsNotNone(result)
-            finally:
-                if os.path.exists(temp_file):
-                    os.unlink(temp_file)
+            result = self.client.get_host("1.2.3.4", output=str(output_file))
+            
+            # Check that file was created and has content
+            self.assertTrue(output_file.exists())
+            with open(output_file, 'r') as f:
+                content = f.read()
+                self.assertIn('1.2.3.4', content)
+            
+            self.assertIsNotNone(result)
+            # Clean up test file
+            if output_file.exists():
+                output_file.unlink()
 
 
 if __name__ == '__main__':

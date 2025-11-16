@@ -115,7 +115,9 @@ jobs:
           echo "Extracting changelog from CHANGELOG.md for version $TAG_VERSION"
           # Extract the section for this version (use same method as validation)
           ESCAPED_VERSION=$(echo "$TAG_VERSION" | sed 's/\./\\./g')
-          CHANGELOG_SECTION=$(awk -v version="$ESCAPED_VERSION" '/^## \[/ && $0 ~ "\\[" version "\\]" {found=1} found {print} /^## \[/ && found && $0 !~ "\\[" version "\\]" {exit}' CHANGELOG.md)
+          # Extract section and stop before the next version header (don't include it)
+          # Check for next version header BEFORE printing to avoid including it
+          CHANGELOG_SECTION=$(awk -v version="$ESCAPED_VERSION" '/^## \[/ && $0 ~ "\\[" version "\\]" {found=1} found {if (/^## \[/ && $0 !~ "\\[" version "\\]") exit; print}' CHANGELOG.md)
           if [ -n "$CHANGELOG_SECTION" ]; then
             CHANGELOG="$CHANGELOG_SECTION"
           fi
