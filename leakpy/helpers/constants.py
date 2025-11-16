@@ -178,11 +178,11 @@ _SEARCH_EXAMPLES = """Examples:
   # Search with specific plugin
   leakpy search -q '+country:"France"' -P PulseConnectPlugin -p 3
 
-  # Extract specific fields
+  # Extract specific fields (by default, all fields are returned)
   leakpy search -q '+country:"France"' -f protocol,ip,port,host
 
-  # Get complete JSON and save to file
-  leakpy search -q '+country:"France"' -f full -o results.json
+  # Get complete JSON and save to file (this is the default behavior)
+  leakpy search -q '+country:"France"' -o results.json
 
   # Use bulk mode (requires Pro API)
   leakpy search -q 'plugin:TraccarPlugin' -b -o results.txt

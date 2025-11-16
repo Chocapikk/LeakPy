@@ -102,7 +102,7 @@ def setup_search_parser(subparsers):
     parser.add_argument("-q", "--query", help="Search query string", default="", type=str)
     parser.add_argument("-P", "--plugins", help="Plugin(s) to use (comma-separated)", type=str, default=None)
     parser.add_argument("-o", "--output", help="Output file path", type=str)
-    parser.add_argument("-f", "--fields", help="Fields to extract (comma-separated, e.g. 'protocol,ip,port' or 'full')", type=str)
+    parser.add_argument("-f", "--fields", help="Fields to extract (comma-separated, e.g. 'protocol,ip,port' or 'full'). Default: 'protocol,ip,port' (for URL formatting)", type=str)
     parser.add_argument("-b", "--bulk", action="store_true", help="Use bulk mode (requires Pro API)")
     return parser
 

@@ -59,8 +59,8 @@ class TestHostDetails(unittest.TestCase):
             result = self.client.get_host("1.2.3.4")
             
             self.assertIsNotNone(result)
-            self.assertIsNotNone(result.Services)
-            self.assertIsNone(result.Leaks)
+            self.assertIsNotNone(result.services)
+            self.assertIsNone(result.leaks)
 
     def test_get_host_with_services_and_leaks(self):
         """Test get_host with both services and leaks."""
@@ -76,10 +76,10 @@ class TestHostDetails(unittest.TestCase):
         with patch.object(self.client.api, 'get_host_details', return_value=(mock_data, False)):
             result = self.client.get_host("1.2.3.4")
             
-            self.assertIsNotNone(result.Services)
-            self.assertIsNotNone(result.Leaks)
-            self.assertEqual(len(result.Services), 1)
-            self.assertEqual(len(result.Leaks), 1)
+            self.assertIsNotNone(result.services)
+            self.assertIsNotNone(result.leaks)
+            self.assertEqual(len(result.services), 1)
+            self.assertEqual(len(result.leaks), 1)
 
     def test_get_host_no_data(self):
         """Test get_host when no data is found."""
@@ -87,8 +87,8 @@ class TestHostDetails(unittest.TestCase):
             result = self.client.get_host("1.2.3.4")
             
             self.assertIsNotNone(result)
-            self.assertIsNone(result.Services)
-            self.assertIsNone(result.Leaks)
+            self.assertIsNone(result.services)
+            self.assertIsNone(result.leaks)
 
     def test_get_host_empty_services_and_leaks(self):
         """Test get_host with empty services and leaks."""
@@ -100,8 +100,8 @@ class TestHostDetails(unittest.TestCase):
         with patch.object(self.client.api, 'get_host_details', return_value=(mock_data, False)):
             result = self.client.get_host("1.2.3.4")
             
-            self.assertIsNone(result.Services)
-            self.assertIsNone(result.Leaks)
+            self.assertIsNone(result.services)
+            self.assertIsNone(result.leaks)
 
     def test_get_host_with_fields(self):
         """Test get_host with specific fields."""
@@ -115,9 +115,9 @@ class TestHostDetails(unittest.TestCase):
         with patch.object(self.client.api, 'get_host_details', return_value=(mock_data, False)):
             result = self.client.get_host("1.2.3.4", fields="protocol,ip,port")
             
-            self.assertIsNotNone(result.Services)
+            self.assertIsNotNone(result.services)
             # Services should be processed with specified fields
-            self.assertIsInstance(result.Services, list)
+            self.assertIsInstance(result.services, list)
 
     def test_get_host_api_method(self):
         """Test the API method get_host_details."""

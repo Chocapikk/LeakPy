@@ -71,7 +71,7 @@ class LeakIXAPI:
             suppress_logs (bool): If True, suppress info logs. Defaults to False.
             
         Returns:
-            tuple: (dict or None, bool) - Host details with 'Services' and 'Leaks' keys, 
+            tuple: (dict or None, bool) - Host details with 'services' and 'leaks' keys, 
                   and whether it was cached. Returns None on error.
         """
         return helpers.fetch_details_endpoint(self.BASE_URL, "host", ip, self.api_key, self.cache, self.log, suppress_logs)
@@ -85,7 +85,7 @@ class LeakIXAPI:
             suppress_logs (bool): If True, suppress info logs. Defaults to False.
             
         Returns:
-            tuple: (dict or None, bool) - Domain details with 'Services' and 'Leaks' keys, 
+            tuple: (dict or None, bool) - Domain details with 'services' and 'leaks' keys, 
                   and whether it was cached. Returns None on error.
         """
         return helpers.fetch_details_endpoint(self.BASE_URL, "domain", domain, self.api_key, self.cache, self.log, suppress_logs)

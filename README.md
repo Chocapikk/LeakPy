@@ -122,7 +122,7 @@ for field in sorted(fields):
     print(field)
 
 # Or get fields from a specific event
-events = client.search(scope="leak", query='+country:"France"', pages=1, fields="full")
+events = list(client.search(scope="leak", query='+country:"France"', pages=1, fields="full"))
 if events:
     fields = client.get_all_fields(events[0])
     for field in sorted(fields):
@@ -146,6 +146,8 @@ The `LeakIX` class offers a direct and user-friendly interface to the LeakIX API
 
 Results are returned as ``L9Event`` objects that support dot notation access. Use ``search()`` to get events. If you specify ``output``, events are written to a file but still returned.
 
+**Streaming:** ``search()`` returns a generator that streams events in real-time using HTTP streaming. Events are yielded as soon as they are received from the API, allowing you to process results immediately without waiting for all pages to be fetched.
+
 ```python
 from leakpy import LeakIX
 
@@ -155,25 +157,35 @@ client = LeakIX()
 # Enable logs and progress bars
 client = LeakIX(silent=False)
 
-# Get events as L9Event objects
+# Get events as L9Event objects - events are streamed page by page in real-time
+# By default, all fields are returned (fields="full")
 events = client.search(
     scope="leak",
     query='+country:"France"',
-    pages=5,
-    fields="protocol,ip,port,host"
+    pages=5
 )
 
-# Access fields using dot notation
+# Access fields using dot notation - events are processed as they arrive
 for event in events:
     protocol = event.protocol  # "http"
     ip = event.ip              # "1.2.3.4"
     port = event.port          # 80
     host = event.host          # "example.com"
     
+    # Access nested fields (available because fields="full" by default)
+    if event.geoip:
+        country = event.geoip.country_name
+        city = event.geoip.city_name
+    
     # Build URL
     if protocol and ip and port:
         url = f"{protocol}://{ip}:{port}"
         print(f"Target: {url}")
+
+# Example output:
+# Target: http://192.168.1.1:80
+# Target: https://10.0.0.1:443
+# Target: ssh://172.16.0.1:22
 ```
 
 **Nested Fields:**
@@ -181,13 +193,18 @@ for event in events:
 Access nested fields using dot notation:
 
 ```python
-# Get full JSON to access all nested fields
+from leakpy import LeakIX
+
+client = LeakIX()
+
+# Get full JSON to access all nested fields (this is the default behavior)
 events = client.search(
     scope="leak",
     query='+country:"France"',
-    pages=2,
-    fields="full"
+    pages=2
 )
+# Or explicitly specify fields="full" if you prefer
+# events = client.search(scope="leak", query='+country:"France"', pages=2, fields="full")
 
 for event in events:
     # Root fields
@@ -206,6 +223,13 @@ for event in events:
     # SSL fields
     if event.ssl and event.ssl.certificate:
         print(f"SSL CN: {event.ssl.certificate.cn}")
+
+# Example output:
+# IP: 192.168.1.1, Port: 80
+# Country: France
+# City: Paris
+# HTTP Status: 200
+# HTTP Title: Welcome to nginx
 ```
 
 **Host Details:**
@@ -219,20 +243,31 @@ client = LeakIX()
 host_info = client.get_host("157.90.211.37")
 
 # Access services and leaks with dot notation
-if host_info.Services:
-    print(f"Found {len(host_info.Services)} services:")
-    for service in host_info.Services:
+if host_info.services:
+    print(f"Found {len(host_info.services)} services:")
+    for service in host_info.services:
         print(f"  {service.protocol}://{service.ip}:{service.port}")
         if service.host:
             print(f"    Host: {service.host}")
         if service.http and service.http.status:
             print(f"    HTTP Status: {service.http.status}")
 
-if host_info.Leaks:
-    print(f"\nFound {len(host_info.Leaks)} leaks:")
-    for leak in host_info.Leaks:
+if host_info.leaks:
+    print(f"\nFound {len(host_info.leaks)} leaks:")
+    for leak in host_info.leaks:
         if leak.leak:
             print(f"  Type: {leak.leak.type}, Severity: {leak.leak.severity}")
+
+# Example output:
+# Found 3 services:
+#   http://157.90.211.37:80
+#     Host: example.com
+#     HTTP Status: 200
+#   https://157.90.211.37:443
+#   ssh://157.90.211.37:22
+#
+# Found 1 leaks:
+#   Type: credential, Severity: high
 
 # Save to file
 client.get_host("157.90.211.37", output="host_details.json")
@@ -249,20 +284,30 @@ client = LeakIX()
 domain_info = client.get_domain("leakix.net")
 
 # Access services and leaks with dot notation
-if domain_info.Services:
-    print(f"Found {len(domain_info.Services)} services:")
-    for service in domain_info.Services:
+if domain_info.services:
+    print(f"Found {len(domain_info.services)} services:")
+    for service in domain_info.services:
         print(f"  {service.protocol}://{service.host}:{service.port}")
         if service.ip:
             print(f"    IP: {service.ip}")
         if service.http and service.http.status:
             print(f"    HTTP Status: {service.http.status}")
 
-if domain_info.Leaks:
-    print(f"\nFound {len(domain_info.Leaks)} leaks:")
-    for leak in domain_info.Leaks:
+if domain_info.leaks:
+    print(f"\nFound {len(domain_info.leaks)} leaks:")
+    for leak in domain_info.leaks:
         if leak.leak:
             print(f"  Type: {leak.leak.type}, Severity: {leak.leak.severity}")
+
+# Example output:
+# Found 2 services:
+#   https://leakix.net:443
+#     IP: 157.90.211.37
+#     HTTP Status: 200
+#   http://leakix.net:80
+#
+# Found 1 leaks:
+#   Type: credential, Severity: high
 
 # Save to file
 client.get_domain("leakix.net", output="domain_details.json")
@@ -283,6 +328,15 @@ print(f"Found {len(subdomains)} subdomains:")
 for subdomain in subdomains:
     print(f"  {subdomain.subdomain} - {subdomain.distinct_ips} IPs")
     print(f"    Last seen: {subdomain.last_seen}")
+
+# Example output:
+# Found 3 subdomains:
+#   www.leakix.net - 1 IPs
+#     Last seen: 2024-01-15T10:30:00Z
+#   staging.leakix.net - 1 IPs
+#     Last seen: 2024-01-14T15:20:00Z
+#   blog.leakix.net - 2 IPs
+#     Last seen: 2024-01-13T09:10:00Z
 
 # Save to file
 client.get_subdomains("leakix.net", output="subdomains.json")
@@ -310,6 +364,12 @@ client.set_cache_ttl(10)
 
 # Clear cache
 client.clear_cache()
+
+# Example output:
+# Cache entries: 42
+# Active entries: 15
+# TTL: 5 minutes
+# Current TTL: 5 minutes
 ```
 
 **Query Statistics (Object-Oriented):**

@@ -253,12 +253,12 @@ def display_subdomains(subdomains, domain):
 def display_lookup_info(info, item_value, title, item_name, limit=50, show_ip=False, no_info_msg=None):
     """Display host or domain information in a formatted way."""
     console = Console()
-    services_count = len(info.Services) if info.Services else 0
-    leaks_count = len(info.Leaks) if info.Leaks else 0
+    services_count = len(info.services) if info.services else 0
+    leaks_count = len(info.leaks) if info.leaks else 0
     display_lookup_info_summary(console, title, item_name, item_value, services_count, leaks_count)
-    display_lookup_services_table(console, info.Services or [], limit, services_count, show_ip=show_ip)
-    display_lookup_leaks_table(console, info.Leaks or [], limit, leaks_count, include_ip=show_ip)
-    if not info.Services and not info.Leaks and no_info_msg:
+    display_lookup_services_table(console, info.services or [], limit, services_count, show_ip=show_ip)
+    display_lookup_leaks_table(console, info.leaks or [], limit, leaks_count, include_ip=show_ip)
+    if not info.services and not info.leaks and no_info_msg:
         console.print(no_info_msg)
 
 

@@ -97,7 +97,7 @@ def analyze_query_results(results, fields_to_analyze=None, all_fields=False):
     Analyze query results and extract statistics.
     
     Args:
-        results: List of results (dicts or L9Event objects) to analyze
+        results: Iterable of results (list, generator, etc.) containing dicts or L9Event objects to analyze
         fields_to_analyze: Can be:
             - None: Use default fields
             - str: Comma-separated field paths (e.g., "protocol,geoip.country_name")
@@ -107,8 +107,18 @@ def analyze_query_results(results, fields_to_analyze=None, all_fields=False):
     Returns:
         QueryStats: Statistics object with 'total' and 'fields' keys
     """
+    import itertools
+    
+    # Convert to list if needed for all_fields sampling, otherwise keep as iterable
+    # For all_fields, we need to sample first 10 items, so we need to handle iterables
+    results_list = None
+    if all_fields:
+        # For all_fields, we need to peek at first items, so convert to list
+        results_list = list(results) if not isinstance(results, list) else results
+        results = results_list
+    
     stats = {
-        'total': len(results),
+        'total': 0,  # Will be counted during iteration
         'fields': {}
     }
     
@@ -126,9 +136,10 @@ def analyze_query_results(results, fields_to_analyze=None, all_fields=False):
     
     def _get_fields_list():
         """Determine which fields to analyze."""
-        if all_fields and results:
+        if all_fields and results_list:
             all_field_paths = set()
-            for result in results[:10]:  # Sample first 10 to get field structure
+            # Sample first 10 to get field structure
+            for result in itertools.islice(results_list, 10):
                 if isinstance(result, dict):
                     all_field_paths.update(helpers.flatten_dict(result).keys())
             return list(all_field_paths)
@@ -147,8 +158,9 @@ def analyze_query_results(results, fields_to_analyze=None, all_fields=False):
         path_parts = field_path.split('.')
         helpers.ensure_nested_path(stats['fields'], path_parts)
     
-    # Analyze each result
+    # Analyze each result and count total
     for result in results:
+        stats['total'] += 1
         for field_path in fields_list:
             value = helpers.get_field_value(result, field_path)
             if value is not None:

@@ -27,6 +27,11 @@ CLI:
    $ leakpy search -q '+country:"France"' -p 5
    $ leakpy lookup host 157.90.211.37
 
+   # Example output (for search):
+   # http://192.168.1.1:80
+   # https://10.0.0.1:443
+   # ssh://172.16.0.1:22
+
 Python:
 
 .. code-block:: python
@@ -37,11 +42,16 @@ Python:
    if not client.has_api_key():
        client.save_api_key("your_48_character_api_key_here")
 
+   # Events are streamed page by page in real-time
    events = client.search(scope="leak", query='+country:"France"', pages=5)
    for event in events:
-       if event.protocol in ('http', 'https') and event.ip and event.port:
+       # Events are processed as they arrive, no waiting for all pages
+       if event.ip and event.port:
            print(f"{event.protocol}://{event.ip}:{event.port}")
-       elif event.ip and event.port:
-           print(f"{event.protocol} {event.ip}:{event.port}")
+
+   # Example output:
+   # http://192.168.1.1:80
+   # https://10.0.0.1:443
+   # ssh://172.16.0.1:22
 
 See :doc:`api` for all available methods.

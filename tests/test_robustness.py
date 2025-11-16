@@ -53,16 +53,16 @@ class TestRobustness(unittest.TestCase):
         """Test that invalid scope types are handled."""
         # Scope might be converted to string, so test actual behavior
         # None might be converted to "None"
-        result = self.client.search(scope=None, pages=1)
+        result = list(self.client.search(scope=None, pages=1))
         self.assertIsInstance(result, list)
         
         # Numbers might be converted to string
-        result = self.client.search(scope=123, pages=1)
+        result = list(self.client.search(scope=123, pages=1))
         self.assertIsInstance(result, list)
         
         # Lists might cause issues or be converted
         try:
-            result = self.client.search(scope=[], pages=1)
+            result = list(self.client.search(scope=[], pages=1))
             self.assertIsInstance(result, list)
         except (TypeError, AttributeError):
             pass  # Expected
@@ -79,13 +79,13 @@ class TestRobustness(unittest.TestCase):
         """Test that negative pages are handled."""
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-            result = self.client.search(pages=-1)
+            result = list(self.client.search(pages=-1))
             self.assertIsInstance(result, list)
 
     def test_zero_pages(self):
         """Test that zero pages returns empty list."""
         # With 0 pages, should return empty list without API calls
-        result = self.client.search(pages=0)
+        result = list(self.client.search(pages=0))
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 0)
 
@@ -93,16 +93,16 @@ class TestRobustness(unittest.TestCase):
         """Test that very large page numbers are handled."""
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-            result = self.client.search(pages=999999)
+            result = list(self.client.search(pages=999999))
             self.assertIsInstance(result, list)
 
     def test_invalid_query_type(self):
         """Test that invalid query types are handled."""
         # Should handle None, int, list, etc.
-        result = self.client.search(query=None)
+        result = list(self.client.search(query=None))
         self.assertIsInstance(result, list)
         
-        result = self.client.search(query=123)
+        result = list(self.client.search(query=123))
         self.assertIsInstance(result, list)
 
     def test_very_long_query(self):
@@ -110,7 +110,7 @@ class TestRobustness(unittest.TestCase):
         long_query = "a" * 10000
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-            result = self.client.search(query=long_query, pages=1)
+            result = list(self.client.search(query=long_query, pages=1))
             self.assertIsInstance(result, list)
 
     def test_special_characters_in_query(self):
@@ -127,27 +127,29 @@ class TestRobustness(unittest.TestCase):
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
             for query in special_queries:
-                result = self.client.search(query=query, pages=1)
+                result = list(self.client.search(query=query, pages=1))
                 self.assertIsInstance(result, list)
 
     def test_invalid_plugin_names(self):
         """Test that invalid plugin names raise appropriate errors."""
         with self.assertRaises(ValueError):
-            self.client.search(plugin="nonexistent_plugin_12345", pages=1)
+            # search() returns a generator, so we need to iterate to trigger validation
+            list(self.client.search(plugin="nonexistent_plugin_12345", pages=1))
 
     def test_invalid_fields_type(self):
         """Test that invalid field types are handled."""
         # Should handle None, int, list, etc.
-        result = self.client.search(fields=None, pages=1)
+        # search() returns a generator, so convert to list for testing
+        result = list(self.client.search(fields=None, pages=1))
         self.assertIsInstance(result, list)
         
-        result = self.client.search(fields=123, pages=1)
+        result = list(self.client.search(fields=123, pages=1))
         self.assertIsInstance(result, list)
 
     def test_invalid_output_type(self):
         """Test that invalid output types are handled."""
         # Should handle gracefully
-        result = self.client.search(output=123, pages=1)
+        result = list(self.client.search(output=123, pages=1))
         self.assertIsInstance(result, list)
 
     # ========== API Key Tests ==========
@@ -362,7 +364,7 @@ class TestRobustness(unittest.TestCase):
         invalid_path = "/nonexistent/directory/file.txt"
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-            result = self.client.search(output=invalid_path, pages=1)
+            result = list(self.client.search(output=invalid_path, pages=1))
             self.assertIsInstance(result, list)
 
     def test_output_to_readonly_directory(self):
@@ -374,7 +376,7 @@ class TestRobustness(unittest.TestCase):
             with patch.object(self.client.api, 'query_search', return_value=(None, False)):
                 try:
                     # Try to create a file in a way that might fail
-                    result = self.client.search(output=readonly_file, pages=1)
+                    result = list(self.client.search(output=readonly_file, pages=1))
                     self.assertIsInstance(result, list)
                 except (IOError, OSError, PermissionError):
                     pass  # Expected on some systems
@@ -383,7 +385,7 @@ class TestRobustness(unittest.TestCase):
         """Test that output to stdout works."""
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-            result = self.client.search(output=sys.stdout, pages=1)
+            result = list(self.client.search(output=sys.stdout, pages=1))
             self.assertIsInstance(result, list)
 
     def test_output_to_stringio(self):
@@ -391,7 +393,7 @@ class TestRobustness(unittest.TestCase):
         output = StringIO()
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-            result = self.client.search(output=output, pages=1)
+            result = list(self.client.search(output=output, pages=1))
             self.assertIsInstance(result, list)
         output.close()
 
@@ -402,7 +404,7 @@ class TestRobustness(unittest.TestCase):
         try:
             # Mock the API to avoid actual network calls
             with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-                result = self.client.search(output=tmp_path, pages=1)
+                result = list(self.client.search(output=tmp_path, pages=1))
                 self.assertIsInstance(result, list)
                 # File might be created even with no results
         finally:
@@ -483,11 +485,11 @@ class TestRobustness(unittest.TestCase):
                 ({"events": []}, False)  # Second call succeeds
             ]
             # First call might fail
-            result1 = self.client.search(pages=1)
+            result1 = list(self.client.search(pages=1))
             self.assertIsInstance(result1, list)
             
             # Second call should work
-            result2 = self.client.search(pages=1)
+            result2 = list(self.client.search(pages=1))
             self.assertIsInstance(result2, list)
 
     def test_multiple_sequential_calls(self):
@@ -495,7 +497,7 @@ class TestRobustness(unittest.TestCase):
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
             for i in range(5):
-                result = self.client.search(pages=1)
+                result = list(self.client.search(pages=1))
                 self.assertIsInstance(result, list)
 
     # ========== Thread Safety Tests ==========
@@ -509,7 +511,7 @@ class TestRobustness(unittest.TestCase):
         
         def worker():
             try:
-                result = self.client.search(pages=1)
+                result = list(self.client.search(pages=1))
                 results.append(result)
             except Exception as e:
                 errors.append(e)
@@ -552,14 +554,14 @@ class TestRobustness(unittest.TestCase):
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
             for query in unicode_queries:
-                result = self.client.search(query=query, pages=1)
+                result = list(self.client.search(query=query, pages=1))
                 self.assertIsInstance(result, list)
 
     def test_unicode_in_fields(self):
         """Test that Unicode in fields is handled."""
         # Mock the API to avoid actual network calls
         with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-            result = self.client.search(fields="protocol,ip,测试", pages=1)
+            result = list(self.client.search(fields="protocol,ip,测试", pages=1))
             self.assertIsInstance(result, list)
 
     def test_unicode_in_output_path(self):
@@ -569,7 +571,7 @@ class TestRobustness(unittest.TestCase):
         try:
             # Mock the API to avoid actual network calls
             with patch.object(self.client.api, 'query_search', return_value=(None, False)):
-                result = self.client.search(output=tmp_path, pages=1)
+                result = list(self.client.search(output=tmp_path, pages=1))
                 self.assertIsInstance(result, list)
         finally:
             if os.path.exists(tmp_path):

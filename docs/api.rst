@@ -14,27 +14,36 @@ LeakIX Class
 CLI Mapping
 -----------
 
-+----------------------------+--------------------------+
-| CLI Command                | Library Method           |
-+============================+==========================+
-| ``leakpy search``          | ``client.search()``      |
-+----------------------------+--------------------------+
-| ``leakpy lookup host``     | ``client.get_host()``    |
-+----------------------------+--------------------------+
-| ``leakpy lookup domain``   | ``client.get_domain()``  |
-+----------------------------+--------------------------+
-| ``leakpy lookup subdomains`` | ``client.get_subdomains()`` |
-+----------------------------+--------------------------+
-| ``leakpy list plugins``    | ``client.get_plugins()`` |
-+----------------------------+--------------------------+
-| ``leakpy list fields``     | ``client.get_all_fields()`` |
-+----------------------------+--------------------------+
-| ``leakpy config set``      | ``client.save_api_key()`` |
-+----------------------------+--------------------------+
-| ``leakpy cache clear``     | ``client.clear_cache()`` |
-+----------------------------+--------------------------+
-| ``leakpy stats query``     | ``client.analyze_query_stats()`` |
-+----------------------------+--------------------------+
+.. list-table:: CLI to Library Method Mapping
+   :header-rows: 1
+   :widths: 40 60
+   
+   * - CLI Command
+     - Library Method
+   * - ``leakpy search``
+     - ``client.search()``
+   * - ``leakpy lookup host``
+     - ``client.get_host()``
+   * - ``leakpy lookup domain``
+     - ``client.get_domain()``
+   * - ``leakpy lookup subdomains``
+     - ``client.get_subdomains()``
+   * - ``leakpy list plugins``
+     - ``client.get_plugins()``
+   * - ``leakpy list fields``
+     - ``client.get_all_fields()``
+   * - ``leakpy config set``
+     - ``client.save_api_key()``
+   * - ``leakpy cache clear``
+     - ``client.clear_cache()``
+   * - ``leakpy cache set-ttl``
+     - ``client.set_cache_ttl(minutes)``
+   * - ``leakpy cache show-ttl``
+     - ``client.get_cache_ttl()``
+   * - ``leakpy stats cache``
+     - ``client.get_cache_stats()``
+   * - ``leakpy stats query``
+     - ``client.analyze_query_stats()``
 
 L9Event Objects
 ---------------
@@ -45,11 +54,13 @@ Results are returned as ``L9Event`` objects with dot notation access:
 
    from leakpy import LeakIX
    client = LeakIX()
+   # Events are streamed in real-time - process them as they arrive
    events = client.search(scope="leak", query='+country:"France"', pages=1)
 
    for event in events:
+       # Events are processed immediately, no waiting for all pages
        if event.ip and event.port and event.protocol:
-           print(f"{event.protocol} {event.ip}:{event.port}")
+           print(f"{event.protocol}://{event.ip}:{event.port}")
        if event.geoip and event.geoip.country_name:
            print(f"  Country: {event.geoip.country_name}")
 

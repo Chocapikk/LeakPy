@@ -182,15 +182,22 @@ def execute_search(args, client, stdout_redirected):
         # We'll use display_search_results() instead
         output_target = None
 
-    results = client.search(scope=args.scope, pages=args.pages, query=args.query, plugin=plugin_str, fields=args.fields, use_bulk=args.bulk, output=output_target)
+    # For CLI, use "protocol,ip,port" by default to preserve URL formatting in tables
+    # If user explicitly specifies fields, use that instead
+    from .constants import _DEFAULT_FIELDS
+    fields = args.fields if args.fields is not None else _DEFAULT_FIELDS
+
+    results = client.search(scope=args.scope, pages=args.pages, query=args.query, plugin=plugin_str, fields=fields, use_bulk=args.bulk, output=output_target)
 
     # Display formatted results if no output file was specified and not in raw or silent mode
     # Only show formatted output in interactive mode (not when stdout is redirected)
     should_display = (
         not output_target and
-        results and
         not _is_raw_or_silent(args) and
         not stdout_redirected
     )
     if should_display:
-        display_search_results(results, args.fields)
+        # Convert generator to list for display
+        results_list = list(results) if not isinstance(results, list) else results
+        if results_list:
+            display_search_results(results_list, fields)

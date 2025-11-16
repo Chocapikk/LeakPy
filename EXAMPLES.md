@@ -136,18 +136,22 @@ from leakpy import LeakIX
 
 client = LeakIX()
 
-# Search for leaks in France
+# Search for leaks in France - events are streamed page by page in real-time
 events = client.search(
     scope="leak",
     pages=5,
     query='+country:"France"'
 )
 
+# Events are processed immediately as they stream from the API
 for event in events:
-    if event.protocol in ('http', 'https') and event.ip and event.port:
+    if event.ip and event.port:
         print(f"{event.protocol}://{event.ip}:{event.port}")
-    elif event.ip and event.port:
-        print(f"{event.protocol} {event.ip}:{event.port}")
+
+# Example output:
+# http://192.168.1.1:80
+# https://10.0.0.1:443
+# ssh://172.16.0.1:22
 ```
 
 ### Search with Custom Fields
@@ -157,21 +161,23 @@ from leakpy import LeakIX
 
 client = LeakIX()
 
-# Extract specific fields
+# Extract specific fields (by default, all fields are returned)
 events = client.search(
     scope="leak",
     pages=3,
     query='+country:"France"',
-    fields="protocol,ip,port,host"
+    fields="protocol,ip,port,host"  # By default, fields="full" returns all fields  # Specify fields to limit what's returned
 )
 
 for event in events:
-    if event.protocol in ('http', 'https') and event.ip and event.port:
+    if event.ip and event.port:
         host_str = f" - {event.host}" if event.host else ""
         print(f"{event.protocol}://{event.ip}:{event.port}{host_str}")
-    elif event.ip and event.port:
-        host_str = f" - {event.host}" if event.host else ""
-        print(f"{event.protocol} {event.ip}:{event.port}{host_str}")
+
+# Example output:
+# http://192.168.1.1:80 - example.com
+# https://10.0.0.1:443 - secure.example.com
+# ssh://172.16.0.1:22 - server.example.com
 ```
 
 ### Get Complete JSON
@@ -211,10 +217,13 @@ events = client.search(
 )
 
 for event in events:
-    if event.protocol in ('http', 'https') and event.ip and event.port:
+    if event.ip and event.port:
         print(f"{event.protocol}://{event.ip}:{event.port}")
-    elif event.ip and event.port:
-        print(f"{event.protocol} {event.ip}:{event.port}")
+
+# Example output:
+# http://192.168.1.1:80
+# https://10.0.0.1:443
+# ssh://172.16.0.1:22
 ```
 
 ### List Plugins
@@ -227,6 +236,12 @@ client = LeakIX()
 plugins = client.get_plugins()
 for plugin in plugins:
     print(plugin)
+
+# Example output:
+# PulseConnectPlugin
+# TraccarPlugin
+# ElasticsearchPlugin
+# MongoDBPlugin
 ```
 
 ### List Available Fields
@@ -241,28 +256,49 @@ fields = client.get_all_fields()
 for field in sorted(fields):
     print(field)
 
+# Example output:
+# event_fingerprint
+# event_type
+# geoip.city_name
+# geoip.country_name
+# http.status
+# ip
+# port
+# protocol
+
 # Or get fields from a specific event
-events = client.search(
+events = list(client.search(
     scope="leak",
     query='+country:"France"',
     pages=1,
     fields="full"
-)
+))
 
 if events:
     fields = client.get_all_fields(events[0])
     for field in sorted(fields):
         print(field)
+
+# Example output:
+# event_fingerprint
+# event_type
+# geoip.city_name
+# geoip.country_name
+# http.status
+# ip
+# port
+# protocol
 ```
 
-### Bulk Mode (Pro API)
+### Bulk Mode (Pro API) with HTTP Streaming
 
 ```python
 from leakpy import LeakIX
 
 client = LeakIX()
 
-# Use bulk mode for faster results (requires Pro API)
+# Bulk mode uses HTTP streaming - events arrive line by line in real-time
+# Events are streamed directly from the HTTP response
 events = client.search(
     scope="leak",
     plugin="TraccarPlugin",
@@ -270,11 +306,15 @@ events = client.search(
     output="bulk_results.txt"
 )
 
+# Events are streamed and processed as they arrive from the server
 for event in events:
-    if event.protocol in ('http', 'https') and event.ip and event.port:
+    if event.ip and event.port:
         print(f"{event.protocol}://{event.ip}:{event.port}")
-    elif event.ip and event.port:
-        print(f"{event.protocol} {event.ip}:{event.port}")
+
+# Example output:
+# http://192.168.1.1:8082
+# https://10.0.0.1:8082
+# http://172.16.0.1:8082
 ```
 
 ### Host Details
@@ -288,18 +328,22 @@ client = LeakIX()
 host_info = client.get_host("157.90.211.37")
 
 # Access services
-if host_info.Services:
-    for service in host_info.Services:
-        if service.protocol in ('http', 'https') and service.ip and service.port:
+if host_info.services:
+    for service in host_info.services:
+        if service.ip and service.port:
             print(f"{service.protocol}://{service.ip}:{service.port}")
-        elif service.ip and service.port:
-            print(f"{service.protocol} {service.ip}:{service.port}")
         if service.http and service.http.title:
             print(f"  Title: {service.http.title}")
 
+# Example output:
+# http://157.90.211.37:80
+#   Title: Welcome to nginx
+# https://157.90.211.37:443
+# ssh://157.90.211.37:22
+
 # Access leaks
-if host_info.Leaks:
-    for event in host_info.Leaks:
+if host_info.leaks:
+    for event in host_info.leaks:
         if event.leak:
             print(f"Leak: {event.leak.type} ({event.leak.severity})")
 
@@ -318,18 +362,21 @@ client = LeakIX()
 domain_info = client.get_domain("leakix.net")
 
 # Access services
-if domain_info.Services:
-    for service in domain_info.Services:
-        if service.protocol in ('http', 'https') and service.host and service.port:
+if domain_info.services:
+    for service in domain_info.services:
+        if service.host and service.port:
             print(f"{service.protocol}://{service.host}:{service.port}")
-        elif service.host and service.port:
-            print(f"{service.protocol} {service.host}:{service.port}")
 
 # Access leaks
-if domain_info.Leaks:
-    for event in domain_info.Leaks:
+if domain_info.leaks:
+    for event in domain_info.leaks:
         if event.leak:
             print(f"Leak: {event.leak.type} ({event.leak.severity})")
+
+# Example output:
+# https://leakix.net:443
+# http://leakix.net:80
+# Leak: credential (high)
 
 # Save to file
 client.get_domain("leakix.net", output="domain_details.json")
@@ -347,6 +394,11 @@ subdomains = client.get_subdomains("leakix.net")
 
 for subdomain in subdomains:
     print(f"{subdomain.subdomain} - {subdomain.distinct_ips} IPs")
+
+# Example output:
+# www.leakix.net - 1 IPs
+# staging.leakix.net - 1 IPs
+# blog.leakix.net - 2 IPs
 
 # Save to file
 client.get_subdomains("leakix.net", output="subdomains.json")
@@ -377,7 +429,7 @@ from leakpy import LeakIX
 
 client = LeakIX()
 
-# Search for events
+# Search for events (analyze_query_stats() accepts generators directly)
 events = client.search(
     scope="leak",
     query='+country:"France"',
@@ -392,6 +444,12 @@ print(f"Total: {stats.total}")
 print(f"France: {stats.fields.geoip.country_name.France}")
 print(f"HTTP: {stats.fields.protocol.http}")
 print(f"HTTPS: {stats.fields.protocol.https}")
+
+# Example output:
+# Total: 150
+# France: 45
+# HTTP: 30
+# HTTPS: 25
 ```
 
 ### Advanced Search
@@ -407,16 +465,18 @@ events = client.search(
     pages=3,
     query='+country:"France"',
     plugin="PulseConnectPlugin",
-    fields="protocol,ip,port,host"
+    fields="protocol,ip,port,host"  # By default, fields="full" returns all fields
 )
 
 for event in events:
-    if event.protocol in ('http', 'https') and event.ip and event.port:
+    if event.ip and event.port:
         host_str = f" - {event.host}" if event.host else ""
         print(f"{event.protocol}://{event.ip}:{event.port}{host_str}")
-    elif event.ip and event.port:
-        host_str = f" - {event.host}" if event.host else ""
-        print(f"{event.protocol} {event.ip}:{event.port}{host_str}")
+
+# Example output:
+# http://192.168.1.1:80 - example.com
+# https://10.0.0.1:443 - secure.example.com
+# ssh://172.16.0.1:22 - server.example.com
 ```
 
 ## 🔧 Error Handling

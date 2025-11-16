@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Test all Python code examples from EXAMPLES.md.
+Test all Python code examples from README.md.
 
 Usage:
     export LEAKPY_TEST_API_KEY='your_48_character_api_key_here'
-    python3 tests/examples_md_test.py
+    python3 tests/readme_md_test.py
 """
 
 import os
@@ -138,7 +138,7 @@ def test_code_block(file_path: str, line_num: int, code: str, test_num: int) -> 
         return False, error_msg
 
 def test_examples_file(file_path: str) -> Tuple[int, int, List[str]]:
-    """Test all Python examples in EXAMPLES.md."""
+    """Test all Python examples in README.md."""
     print(f"\n{'='*80}")
     print(f"Testing: {file_path}")
     print(f"{'='*80}")
@@ -190,23 +190,23 @@ def main():
         print("=" * 80)
         print("ERROR: LEAKPY_TEST_API_KEY environment variable is not set.")
         print("=" * 80)
-        print("\nTo run EXAMPLES.md tests, set the environment variable:")
+        print("\nTo run README.md tests, set the environment variable:")
         print("\n  export LEAKPY_TEST_API_KEY='your_48_character_api_key_here'")
-        print("  python3 tests/test_examples_md.py")
+        print("  python3 tests/readme_md_test.py")
         print("\nOr in one line:")
-        print("  LEAKPY_TEST_API_KEY='your_key' python3 tests/examples_md_test.py")
+        print("  LEAKPY_TEST_API_KEY='your_key' python3 tests/readme_md_test.py")
         print("\nNote: The API key is only used in memory and will NOT overwrite")
         print("      your local API key stored on disk.")
         print("=" * 80)
         return 1
     
-    examples_file = Path(__file__).parent.parent / "EXAMPLES.md"
+    readme_file = Path(__file__).parent.parent / "README.md"
     
-    if not examples_file.exists():
-        print(f"ERROR: {examples_file} not found")
+    if not readme_file.exists():
+        print(f"ERROR: {readme_file} not found")
         return 1
     
-    passed, failed, errors = test_examples_file(str(examples_file))
+    passed, failed, errors = test_examples_file(str(readme_file))
     
     # Summary
     print(f"\n{'='*80}")

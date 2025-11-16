@@ -19,16 +19,24 @@ CLI Examples
    $ leakpy list plugins
    $ leakpy list fields
 
+   # Example output (for search):
+   # http://192.168.1.1:80
+   # https://10.0.0.1:443
+   # ssh://172.16.0.1:22
+
 Python Examples
 ---------------
 
-Search:
+Search (with HTTP Streaming):
 
 .. code-block:: python
 
    from leakpy import LeakIX
    client = LeakIX()
 
+   # Events are streamed page by page in real-time
+   # By default, all fields are returned (fields="full")
+   # You can process them as they arrive, no need to wait for all pages
    events = client.search(
        scope="leak",
        query='+country:"France"',
@@ -36,10 +44,43 @@ Search:
    )
 
    for event in events:
-       if event.protocol in ('http', 'https') and event.ip and event.port:
+       # Events are processed immediately as they stream from the API
+       # All fields are available by default (geoip, http, etc.)
+       if event.ip and event.port:
            print(f"{event.protocol}://{event.ip}:{event.port}")
-       elif event.ip and event.port:
-           print(f"{event.protocol} {event.ip}:{event.port}")
+       
+       # Access nested fields (available because fields="full" by default)
+       if event.geoip:
+           print(f"  Country: {event.geoip.country_name}")
+
+   # Example output:
+   # http://192.168.1.1:80
+   #   Country: France
+   # ssh://10.0.0.1:22
+   #   Country: United States
+
+Bulk Mode with HTTP Streaming (Pro API):
+
+.. code-block:: python
+
+   from leakpy import LeakIX
+   client = LeakIX()
+
+   # Bulk mode uses HTTP streaming - events arrive line by line in real-time
+   events = client.search(
+       scope="leak",
+       query='plugin:TraccarPlugin',
+       use_bulk=True
+   )
+
+   # Events are streamed directly from the HTTP response
+   for event in events:
+       print(f"{event.ip}:{event.port}")
+
+   # Example output:
+   # 192.168.1.1:8082
+   # 10.0.0.1:8082
+   # 172.16.0.1:8082
 
 Lookup:
 
@@ -50,26 +91,36 @@ Lookup:
 
    # Host details
    host_info = client.get_host("157.90.211.37")
-   if host_info.Services:
-       for service in host_info.Services:
-           if service.protocol in ('http', 'https') and service.ip and service.port:
+   if host_info.services:
+       for service in host_info.services:
+           if service.ip and service.port:
                print(f"{service.protocol}://{service.ip}:{service.port}")
-           elif service.ip and service.port:
-               print(f"{service.protocol} {service.ip}:{service.port}")
+
+   # Example output:
+   # http://157.90.211.37:80
+   # https://157.90.211.37:443
+   # ssh://157.90.211.37:22
 
    # Domain details
    domain_info = client.get_domain("leakix.net")
-   if domain_info.Services:
-       for service in domain_info.Services:
-           if service.protocol in ('http', 'https') and service.host and service.port:
+   if domain_info.services:
+       for service in domain_info.services:
+           if service.host and service.port:
                print(f"{service.protocol}://{service.host}:{service.port}")
-           elif service.host and service.port:
-               print(f"{service.protocol} {service.host}:{service.port}")
+
+   # Example output:
+   # https://leakix.net:443
+   # http://leakix.net:80
 
    # Subdomains
    subdomains = client.get_subdomains("leakix.net")
    for subdomain in subdomains:
        print(subdomain.subdomain)
+
+   # Example output:
+   # www.leakix.net
+   # staging.leakix.net
+   # blog.leakix.net
 
 List Available Fields:
 
@@ -83,6 +134,16 @@ List Available Fields:
    for field in sorted(fields):
        print(field)
 
+   # Example output:
+   # event_fingerprint
+   # event_type
+   # geoip.city_name
+   # geoip.country_name
+   # http.status
+   # ip
+   # port
+   # protocol
+
 Statistics:
 
 .. code-block:: python
@@ -90,11 +151,17 @@ Statistics:
    from leakpy import LeakIX
    client = LeakIX()
 
+   # analyze_query_stats() accepts generators directly
    events = client.search(scope="leak", query='+country:"France"', pages=5)
    stats = client.analyze_query_stats(events, fields='protocol,geoip.country_name')
    
    print(f"Total: {stats.total}")
    print(f"France: {stats.fields.geoip.country_name.France}")
    print(f"HTTP: {stats.fields.protocol.http}")
+
+   # Example output:
+   # Total: 150
+   # France: 45
+   # HTTP: 30
 
 See :doc:`api` for complete API reference.
