@@ -40,20 +40,20 @@ $ leakpy search -q '+country:"France"' -p 5 -o results.txt
 ### Extract Specific Fields
 
 ```bash
-# Extract only protocol, IP, and port (default)
+# Extract only protocol, IP, and port (default for URL formatting)
 $ leakpy search -q '+country:"France"' -f protocol,ip,port
 
 # Extract custom fields
 $ leakpy search -q '+country:"France"' -f protocol,ip,port,host,event_source
 
-# Get complete JSON
+# Get complete JSON (all fields)
 $ leakpy search -q '+country:"France"' -f full -o results.json
 ```
 
 ### Bulk Mode (Pro API Required)
 
 ```bash
-# Use bulk mode for faster results (requires Pro API)
+# Use bulk mode for faster results (requires Pro API, only works with scope="leak")
 $ leakpy search -q 'plugin:TraccarPlugin' -b -o results.txt
 ```
 
@@ -67,14 +67,17 @@ $ leakpy search -s service -q 'port:3306' -p 3
 ### Silent Mode (Scripting)
 
 ```bash
+# Raw mode outputs raw JSON (useful for scripting/piping)
+$ leakpy --raw search -q '+country:"France"' -p 5 -o results.txt
+
+# List plugins in raw mode (outputs only plugin names, one per line)
+$ leakpy --raw list plugins
+
+# List fields in raw mode (outputs only field names, one per line)
+$ leakpy --raw list fields -q '+country:"France"'
+
 # Silent mode suppresses all logs and progress bars (useful for scripting)
 $ leakpy --silent search -q '+country:"France"' -p 5 -o results.txt
-
-# List plugins in silent mode (outputs only plugin names, one per line)
-$ leakpy --silent list plugins
-
-# List fields in silent mode (outputs only field names, one per line)
-$ leakpy --silent list fields -q '+country:"France"'
 ```
 
 ### Cache Management
@@ -101,11 +104,20 @@ $ leakpy stats cache
 # Analyze query statistics (by country, protocol, etc.)
 $ leakpy stats query -q '+country:"France"' -p 5
 
+# Use bulk mode for faster queries (requires Pro API, only works with scope="leak")
+$ leakpy stats query -q 'plugin:TraccarPlugin' -b
+
 # Analyze statistics from a JSON file
 $ leakpy stats query -f results.json
 
 # Analyze specific fields
 $ leakpy stats query -f results.json --fields "geoip.country_name,protocol,port"
+
+# Analyze all available fields
+$ leakpy stats query -f results.json --all-fields
+
+# Show top 15 items instead of default 10
+$ leakpy stats query -f results.json --top 15
 ```
 
 **Cache Location:**

@@ -49,11 +49,11 @@ Options:
 
 .. option:: -f, --fields FIELDS
 
-   Fields to extract (comma-separated). Use ``full`` for complete JSON.
+   Fields to extract (comma-separated). Default: ``protocol,ip,port`` (for URL formatting). Use ``full`` for complete JSON.
 
 .. option:: -b, --bulk
 
-   Activate bulk mode (requires Pro API)
+   Activate bulk mode (requires Pro API, only works with scope="leak")
 
 .. option:: -o, --output OUTPUT
 
@@ -64,6 +64,8 @@ Examples:
 .. code-block:: bash
 
    $ leakpy search -q '+country:"France"' -p 5
+   $ leakpy search -q '+country:"France"' -f protocol,ip,port,host
+   $ leakpy search -q '+country:"France"' -f full -o results.json
    $ leakpy search -q 'plugin:TraccarPlugin' -b -o results.txt
    $ leakpy --raw search -q '+country:"France"' -p 5
 
@@ -126,7 +128,11 @@ Stats
 
 .. code-block:: bash
 
+   $ leakpy stats cache
    $ leakpy stats query -q '+country:"France"' -p 5
+   $ leakpy stats query -q 'plugin:TraccarPlugin' -b
    $ leakpy stats query -f results.json --fields "geoip.country_name,protocol"
+   $ leakpy stats query -f results.json --all-fields
+   $ leakpy stats query -f results.json --top 15
 
 For complete help, use ``leakpy COMMAND --help``.

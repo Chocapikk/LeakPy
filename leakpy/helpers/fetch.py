@@ -65,7 +65,7 @@ def fetch_cached_endpoint(base_url, endpoint, params, api_key, cache, fetch_msg,
         return cached_data, True
     
     if not suppress_logs and log_func:
-        log_func(fetch_msg, "info")
+        log_func(fetch_msg, "debug")
     
     response = make_api_request(base_url, endpoint, api_key, params=params, log_func=log_func)
     if not response:

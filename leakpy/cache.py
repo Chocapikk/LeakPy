@@ -135,12 +135,31 @@ class APICache:
     
     @helpers.handle_file_errors(default_return={})
     def _load_cache(self):
-        """Load cache from file."""
-        if self.cache_file.exists():
-            from .helpers.constants import _ENCODING_UTF8
-            with open(self.cache_file, 'r', encoding=_ENCODING_UTF8) as f:
-                return json.load(f)
-        return {}
+        """Load cache from file and remove expired entries."""
+        if not self.cache_file.exists():
+            return {}
+        
+        from .helpers.constants import _ENCODING_UTF8
+        with open(self.cache_file, 'r', encoding=_ENCODING_UTF8) as f:
+            cache_data = json.load(f)
+        
+        # Remove expired entries immediately
+        current_time = time.time()
+        expired_keys = []
+        for key, entry in cache_data.items():
+            if self._is_entry_expired(entry):
+                expired_keys.append(key)
+        
+        # Remove expired entries
+        for key in expired_keys:
+            del cache_data[key]
+        
+        # Save cleaned cache if we removed any entries
+        if expired_keys:
+            self._cache = cache_data
+            self._save_cache()
+        
+        return cache_data
     
     @helpers.handle_file_errors()
     def _save_cache(self):

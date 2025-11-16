@@ -8,6 +8,8 @@ CLI Examples
 
    # Search
    $ leakpy search -q '+country:"France"' -p 5
+   $ leakpy search -q '+country:"France"' -f protocol,ip,port,host
+   $ leakpy search -q '+country:"France"' -f full -o results.json
    $ leakpy search -q 'plugin:TraccarPlugin' -b -o results.txt
 
    # Raw JSON output (for scripting/piping)
@@ -23,6 +25,12 @@ CLI Examples
    # List
    $ leakpy list plugins
    $ leakpy list fields
+   $ leakpy list fields -q '+country:"France"'
+   
+   # Stats
+   $ leakpy stats cache
+   $ leakpy stats query -q '+country:"France"' -p 5
+   $ leakpy stats query -f results.json --fields "geoip.country_name,protocol"
 
    # Example output (for search):
    # http://192.168.1.1:80
@@ -72,6 +80,7 @@ Bulk Mode with HTTP Streaming (Pro API):
    client = LeakIX()
 
    # Bulk mode uses HTTP streaming - events arrive line by line in real-time
+   # Note: bulk mode only works with scope="leak" (requires Pro API)
    events = client.search(
        scope="leak",
        query='plugin:TraccarPlugin',

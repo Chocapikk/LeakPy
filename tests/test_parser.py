@@ -17,7 +17,8 @@ class TestParser(unittest.TestCase):
         }
         result = extract_data_from_json(data, None)
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].to_dict(), {"url": "http://1.2.3.4:80"})
+        # Default fields return protocol, ip, port, and url
+        self.assertEqual(result[0].to_dict(), {"protocol": "http", "ip": "1.2.3.4", "port": 80, "url": "http://1.2.3.4:80"})
 
     def test_extract_data_custom_fields(self):
         """Test extraction with custom fields."""

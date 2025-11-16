@@ -59,6 +59,45 @@ def _display_items_table(items, column_name):
     console.print(table)
 
 
+def _display_plugins_table(plugins):
+    """Display plugins in a Rich table with multiple columns based on terminal width."""
+    console = Console()
+    
+    # Calculate available width (terminal width minus table padding and borders)
+    try:
+        terminal_width = console.width or 80
+    except:
+        terminal_width = 80
+    
+    sorted_plugins = sorted(plugins)
+    plugin_count = len(sorted_plugins)
+    
+    # Find the longest plugin name to determine column width
+    max_plugin_length = max(len(p) for p in sorted_plugins) if sorted_plugins else 20
+    column_width = max_plugin_length + 2  # +2 for padding
+    
+    # Calculate number of columns that fit
+    # Reserve space for table borders (approximately 4 characters)
+    available_width = terminal_width - 4
+    num_columns = max(1, available_width // column_width)
+    
+    # Create table with multiple columns but single header including count
+    table = Table(show_header=True, header_style="bold cyan", box=box.ROUNDED)
+    table.add_column(f"Plugin Name ({plugin_count} available)", style="white", width=column_width)
+    for i in range(num_columns - 1):
+        table.add_column("", style="white", width=column_width)
+    
+    # Group plugins into rows
+    for i in range(0, len(sorted_plugins), num_columns):
+        row_plugins = sorted_plugins[i:i+num_columns]
+        # Pad row to have num_columns elements
+        while len(row_plugins) < num_columns:
+            row_plugins.append("")
+        table.add_row(*row_plugins)
+    
+    console.print(table)
+
+
 def handle_list_plugins(logger, scraper):
     """Helper function to list plugins."""
     plugins = scraper.get_plugins()
@@ -66,12 +105,10 @@ def handle_list_plugins(logger, scraper):
         logger.error("Failed to list plugins.")
         return False
     
-    logger.info(f"Plugins available: {len(plugins)}")
-    
     if _is_output_redirected():
         _display_items_simple(plugins)
     else:
-        _display_items_table(plugins, "Plugin Name")
+        _display_plugins_table(plugins)
     
     return True
 

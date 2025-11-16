@@ -166,6 +166,12 @@ def execute_search(args, client, stdout_redirected):
     """Execute search command."""
     from leakpy.cli_helpers import normalize_plugins
 
+    # Validate bulk mode: only works with scope="leak"
+    if args.bulk and args.scope == "service":
+        from ..logger import setup_logger
+        logger = setup_logger("LeakPy", verbose=False)
+        _error_and_exit(logger, "Bulk mode is only available for scope='leak', not 'service'")
+
     plugins = normalize_plugins(args.plugins)
     plugin_str = ",".join(plugins) if plugins else ""
 
@@ -202,7 +208,9 @@ def execute_search(args, client, stdout_redirected):
             not stdout_redirected
         )
         if should_display:
-            # Convert generator to list for display
-            results_list = list(results) if not isinstance(results, list) else results
+            # Show progress bar while consuming generator
+            from .progress import consume_stream_with_progress
+            results_list, interrupted = consume_stream_with_progress(results, args, "Streaming results")
+            
             if results_list:
                 display_search_results(results_list, fields)

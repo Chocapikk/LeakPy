@@ -5,6 +5,30 @@ All notable changes to LeakPy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.5] - 2025-11-16
+
+### Fixed
+- Fixed broken CLI search command - table display was corrupted and not showing results correctly
+- Improved progress bar for search and stats query commands - now shows real-time progress as events are streamed, with accurate event count and rate (events/second)
+- Fixed progress bar display when interrupting with Ctrl+C - now properly removes the progress bar and shows a clean message
+- Cache now automatically removes expired entries on load - expired entries are no longer stored on disk
+
+### Added
+- Progress bar now available for `stats query` command when loading results from API
+- Graceful handling of Ctrl+C interruption - statistics are displayed on partially collected results instead of exiting
+
+### Changed
+- Progress bar now updates at each streamed event for more accurate real-time feedback
+- Improved `list plugins` command display - plugins are now organized in multiple columns based on terminal width for better readability
+
+### Removed
+- Removed `query()` method from LeakIX class (use `search()` instead, which returns a generator with streaming support)
+- Removed `stats overview` command (duplicate of `stats cache`)
+- Removed "expired entries" from cache statistics display (expired entries are now automatically removed)
+
+### Validation
+- Added validation to prevent using bulk mode with scope="service" (bulk mode only works with scope="leak" per LeakIX API limitations)
+
 ## [2.2.4] - 2025-11-16
 
 ### Fixed

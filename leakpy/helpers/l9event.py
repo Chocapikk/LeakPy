@@ -72,11 +72,9 @@ def extract_from_single_entry(entry, fields_list):
 
     extracted_data = extract_fields_to_dict(entry, fields_list)
 
-    # Special handling for default fields: create URL if protocol is http/https
+    # Special handling for default fields: add URL if protocol is http/https
     if fields_list == _DEFAULT_FIELDS_LIST:
-        url_event = create_url_from_fields(extracted_data)
-        if url_event:
-            return url_event
+        return create_url_from_fields(extracted_data)
 
     return create_l9event(extracted_data)
 
@@ -88,15 +86,19 @@ def handle_full_fields(data, fields_list):
 
 
 def create_url_from_fields(extracted_data):
-    """Create URL from protocol, ip, port fields if applicable."""
+    """Create L9Event with protocol, ip, port and url fields if applicable."""
     # Late import to avoid circular dependency
     from ..events import L9Event
     protocol = extracted_data.get("protocol", "")
     ip = extracted_data.get("ip", "")
     port = extracted_data.get("port", "")
+    
+    # Always return the extracted data, but add URL if protocol is http/https
+    result_data = extracted_data.copy()
     if protocol in ("http", "https") and ip and port:
-        return L9Event({_PARSER_URL_KEY: f"{protocol}://{ip}:{port}"})
-    return None
+        result_data[_PARSER_URL_KEY] = f"{protocol}://{ip}:{port}"
+    
+    return L9Event(result_data)
 
 
 def extract_data_from_json(data, fields):

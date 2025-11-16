@@ -43,18 +43,71 @@ def display_search_results(results, fields=None):
     
     console = Console()
     
+    def _extract_from_url(url_str):
+        """Extract protocol, ip, port from URL string."""
+        if not url_str:
+            return None, None, None
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url_str)
+            protocol = parsed.scheme
+            host = parsed.hostname
+            port = parsed.port or (443 if protocol == 'https' else 80 if protocol == 'http' else None)
+            return protocol, host, port
+        except:
+            return None, None, None
+    
+    def _get_protocol(r):
+        """Get protocol from event, or extract from URL if available."""
+        protocol = getattr(r, 'protocol', None)
+        if protocol:
+            return protocol
+        url = getattr(r, 'url', None)
+        if url:
+            protocol, _, _ = _extract_from_url(url)
+            return protocol or 'N/A'
+        return 'N/A'
+    
+    def _get_ip(r):
+        """Get IP from event, or extract from URL if available."""
+        ip = getattr(r, 'ip', None)
+        if ip:
+            return ip
+        url = getattr(r, 'url', None)
+        if url:
+            _, ip, _ = _extract_from_url(url)
+            return ip or 'N/A'
+        return 'N/A'
+    
+    def _get_port(r):
+        """Get port from event, or extract from URL if available."""
+        port = getattr(r, 'port', None)
+        if port:
+            return str(port)
+        url = getattr(r, 'url', None)
+        if url:
+            _, _, port = _extract_from_url(url)
+            return str(port) if port else 'N/A'
+        return 'N/A'
+    
     # Field definitions: (field_name, column_title, style, width, justify, getter_func)
     FIELD_DEFS = {
         "url": ("URL", "cyan", 60, None, lambda r: getattr(r, 'url', None) or 'N/A'),
-        "protocol": ("Protocol", "cyan", 8, None, lambda r: getattr(r, 'protocol', 'N/A') or 'N/A'),
-        "ip": ("IP", "yellow", 16, None, lambda r: getattr(r, 'ip', 'N/A') or 'N/A'),
-        "port": ("Port", "white", 6, "right", lambda r: str(port) if (port := getattr(r, 'port', None)) else 'N/A'),
+        "protocol": ("Protocol", "cyan", 8, None, _get_protocol),
+        "ip": ("IP", "yellow", 16, None, _get_ip),
+        "port": ("Port", "white", 6, "right", _get_port),
         "host": ("Host", "green", 40, None, lambda r: getattr(r, 'host', 'N/A') or 'N/A'),
     }
     
     # Determine which fields to display
     if fields and fields != "full":
         field_list = [f.strip() for f in fields.split(',')]
+        # If fields are "protocol,ip,port" (or similar) but we have URL, prefer URL
+        if field_list == ["protocol", "ip", "port"] or (len(field_list) == 3 and "protocol" in field_list and "ip" in field_list and "port" in field_list):
+            # Check if results have URL instead of separate fields
+            if results and hasattr(results[0], 'url') and results[0].url:
+                # If URL exists, show URL instead of protocol, ip, port
+                field_list = ["url"]
     else:
         # Default: show url if available, otherwise protocol, ip, port
         field_list = ["url"] if hasattr(results[0], 'url') and results[0].url else ["protocol", "ip", "port", "host"]
@@ -130,27 +183,6 @@ def _get_age_bucket(age_minutes):
     return next((label for threshold, label in buckets if age_minutes < threshold), '1h+')
 
 
-def _display_age_distribution(console):
-    """Display age distribution for cache entries."""
-    console.print()
-    console.print("[bold]Entry Age Distribution[/bold]")
-    
-    age_buckets = {'0-5 min': 0, '5-15 min': 0, '15-30 min': 0, '30-60 min': 0, '1h+': 0}
-    cache = APICache()
-    current_time = time.time()
-    
-    for entry in cache._cache.values():
-        entry_age = current_time - entry['timestamp']
-        entry_ttl = entry.get('ttl', cache.ttl)
-        if entry_age <= entry_ttl:
-            age_buckets[_get_age_bucket(entry_age / 60)] += 1
-    
-    max_bucket = max(age_buckets.values()) or 1
-    for bucket_name, count in age_buckets.items():
-        if count > 0:
-            console.print(f"  {bucket_name:12} {create_cache_bar(count, max_bucket)}")
-
-
 def display_cache_stats(args, logger):
     """Display cache statistics with visualizations."""
     stats = get_cache_stats()
@@ -159,7 +191,6 @@ def display_cache_stats(args, logger):
     if args.raw or args.silent:
         print(f"total_entries:{stats['total_entries']}")
         print(f"active_entries:{stats['active_entries']}")
-        print(f"expired_entries:{stats['expired_entries']}")
         print(f"ttl_minutes:{stats['ttl_minutes']}")
         print(f"cache_file_size:{stats['cache_file_size']}")
         return
@@ -170,7 +201,6 @@ def display_cache_stats(args, logger):
     
     stats_table.add_row("Total entries", f"[bold]{stats['total_entries']}[/bold]")
     stats_table.add_row("Active entries", f"[bold green]{stats['active_entries']}[/bold green]")
-    stats_table.add_row("Expired entries", f"[bold red]{stats['expired_entries']}[/bold red]")
     
     ttl_display = f"{stats['ttl_minutes']} minutes"
     ttl_display += f" (configured: {stats['configured_ttl_minutes']} min)" if stats['configured_ttl_minutes'] else " (default)"
@@ -184,49 +214,29 @@ def display_cache_stats(args, logger):
         if stats['newest_entry_age'] > 0:
             stats_table.add_row("Newest entry", format_duration(stats['newest_entry_age']))
     
+    # Add age distribution info to table if there are multiple entries
+    if stats['total_entries'] > 1 and stats['oldest_entry_age'] > 0:
+        age_buckets = {'0-5 min': 0, '5-15 min': 0, '15-30 min': 0, '30-60 min': 0, '1h+': 0}
+        cache = APICache()
+        current_time = time.time()
+        
+        for entry in cache._cache.values():
+            entry_age = current_time - entry['timestamp']
+            entry_ttl = entry.get('ttl', cache.ttl)
+            if entry_age <= entry_ttl:
+                age_buckets[_get_age_bucket(entry_age / 60)] += 1
+        
+        # Show age distribution as percentages in table
+        age_distribution = []
+        for bucket_name, count in age_buckets.items():
+            if count > 0:
+                percentage = (count / stats['total_entries']) * 100
+                age_distribution.append(f"{bucket_name}: {percentage:.1f}%")
+        
+        if age_distribution:
+            stats_table.add_row("Age distribution", ", ".join(age_distribution))
+    
     console.print(Panel(stats_table, title="[bold cyan]Cache Statistics[/bold cyan]", border_style="cyan"))
-    
-    if stats['total_entries'] > 0:
-        console.print()
-        console.print("[bold]Entry Status Distribution[/bold]")
-        
-        max_entries = max(stats['active_entries'], stats['expired_entries'], 1)
-        active_bar = create_cache_bar(stats['active_entries'], max_entries)
-        expired_bar = create_cache_bar(stats['expired_entries'], max_entries)
-        
-        console.print(f"  [green]Active:[/green]   {active_bar}")
-        console.print(f"  [red]Expired:[/red]   {expired_bar}")
-        
-        if stats['active_entries'] > 0 and stats['oldest_entry_age'] > 0:
-            _display_age_distribution(console)
-
-
-def display_overview(args, logger):
-    """Display overview statistics."""
-    cache_stats = get_cache_stats()
-    console = Console()
-    
-    if args.raw or args.silent:
-        class RawArgs:
-            raw = True
-            silent = True
-        display_cache_stats(RawArgs(), logger)
-        return
-    
-    display_cache_stats(args, logger)
-    console.print()
-    
-    from rich.text import Text
-    summary_text = Text()
-    summary_text.append("LeakPy Statistics Overview\n\n", style="bold cyan")
-    summary_text.append(f"Cache: ", style="cyan")
-    summary_text.append(f"{cache_stats['total_entries']} entries", style="white")
-    summary_text.append(f" ({format_size(cache_stats['cache_file_size'])})", style="dim")
-    summary_text.append("\n")
-    summary_text.append(f"TTL: ", style="cyan")
-    summary_text.append(f"{cache_stats['ttl_minutes']} minutes", style="white")
-    
-    console.print(Panel(summary_text, title="[bold]Summary[/bold]", border_style="blue"))
 
 
 @handle_exceptions(default_return='')
@@ -370,6 +380,7 @@ def _display_stats_table(console, sorted_items, max_count, field_name="", total_
 def _load_query_results(args, logger, client):
     """Load results from file or API."""
     import sys
+    
     def _error_and_exit(logger, message):
         logger.error(message)
         sys.exit(1)
@@ -385,7 +396,18 @@ def _load_query_results(args, logger, client):
     if not client:
         _error_and_exit(logger, "Either --file or a query must be provided")
     
+    # Validate bulk mode: only works with scope="leak"
+    if args.bulk and args.scope == "service":
+        _error_and_exit(logger, "Bulk mode is only available for scope='leak', not 'service'")
+    
     results = client.search(scope=args.scope, pages=args.pages, query=args.query, fields="full", use_bulk=args.bulk)
+    
+    # Show progress bar when loading from API (not in raw/silent mode and stdout is a TTY)
+    if not args.raw and not args.silent and sys.stdout.isatty():
+        from .progress import consume_stream_with_progress
+        results_list, interrupted = consume_stream_with_progress(results, args, "Streaming results for statistics")
+        return results_list
+    
     return list(results) if not isinstance(results, list) else results
 
 

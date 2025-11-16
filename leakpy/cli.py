@@ -36,7 +36,7 @@ from . import __version__
 from . import helpers
 from .helpers.constants import (
     _SEARCH_EXAMPLES, _LOOKUP_EXAMPLES, _HOST_EXAMPLES, _DOMAIN_EXAMPLES,
-    _SUBDOMAINS_EXAMPLES, _STATS_CACHE_EXAMPLES, _STATS_OVERVIEW_EXAMPLES,
+    _SUBDOMAINS_EXAMPLES, _STATS_CACHE_EXAMPLES,
     _STATS_QUERY_EXAMPLES, _LIST_PLUGINS_EXAMPLES, _LIST_FIELDS_EXAMPLES,
     _CONFIG_RESET_EXAMPLES, _CONFIG_SET_EXAMPLES, _CACHE_CLEAR_EXAMPLES,
     _CACHE_SET_TTL_EXAMPLES, _CACHE_SHOW_TTL_EXAMPLES
@@ -134,7 +134,6 @@ def setup_stats_parser(subparsers):
     subparsers_stats = parser.add_subparsers(dest='stats_action', required=True)
     
     subparsers_stats.add_parser('cache', help='Display cache statistics', description='Show cache statistics with visualizations', epilog=_STATS_CACHE_EXAMPLES, formatter_class=argparse.RawDescriptionHelpFormatter, parents=[create_common_parser()])
-    subparsers_stats.add_parser('overview', help='Display overview statistics', description='Show an overview of all statistics', epilog=_STATS_OVERVIEW_EXAMPLES, formatter_class=argparse.RawDescriptionHelpFormatter, parents=[create_common_parser()])
     query_parser = subparsers_stats.add_parser('query', help='Display query statistics', description='Analyze and display statistics from search queries (by country, protocol, port, etc.)', epilog=_STATS_QUERY_EXAMPLES, formatter_class=argparse.RawDescriptionHelpFormatter, parents=[create_common_parser()])
     query_parser.add_argument('-f', '--file', type=str, help='JSON file containing query results to analyze')
     query_parser.add_argument('-q', '--query', type=str, default='', help='Query string to search (if no file provided)')
@@ -224,7 +223,6 @@ def execute_stats(args, logger, silent, client=None):
     """Execute the stats command."""
     _STATS_ACTIONS = {
         'cache': lambda: helpers.display_cache_stats(args, logger),
-        'overview': lambda: helpers.display_overview(args, logger),
         'query': lambda: helpers.execute_query_stats(args, logger, client)
     }
     
@@ -300,10 +298,10 @@ Examples:
   # Extract specific fields
   leakpy search -q '+country:"France"' -f protocol,ip,port,host
 
-  # Get complete JSON and save to file
+  # Get complete JSON (all fields) and save to file
   leakpy search -q '+country:"France"' -f full -o results.json
 
-  # Use bulk mode (requires Pro API)
+  # Use bulk mode (requires Pro API, only works with scope="leak")
   leakpy search -q 'plugin:TraccarPlugin' -b -o results.txt
 
   # Configure API key
@@ -318,8 +316,6 @@ Examples:
   # Display cache statistics
   leakpy stats cache
 
-  # Display overview statistics
-  leakpy stats overview
 
   # Analyze query statistics (by country, protocol, etc.)
   leakpy stats query -q '+country:"France"' -p 5

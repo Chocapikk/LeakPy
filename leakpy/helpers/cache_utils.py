@@ -73,37 +73,28 @@ def get_cache_stats():
     cache = APICache()
     cache_config = CacheConfig()
     
+    # All entries in cache are active (expired entries are removed on load)
+    current_time = time.time()
+    entry_ages = []
+    
+    for key, entry in cache._cache.items():
+        entry_age = current_time - entry['timestamp']
+        entry_ages.append(entry_age)
+    
     stats = {
         'total_entries': len(cache._cache),
+        'active_entries': len(cache._cache),  # All entries are active (expired removed on load)
+        'expired_entries': 0,  # Always 0 since expired entries are removed on load
         'ttl_seconds': cache.ttl,
         'ttl_minutes': cache.ttl // 60,
         'configured_ttl_minutes': cache_config.get_ttl_minutes(),
         'cache_file_size': 0,
         'cache_file_path': str(cache.cache_file),
-        'expired_entries': 0,
-        'active_entries': 0,
-        'oldest_entry_age': 0,
-        'newest_entry_age': 0,
+        'oldest_entry_age': max(entry_ages) if entry_ages else 0,
+        'newest_entry_age': min(entry_ages) if entry_ages else 0,
     }
     
     if cache.cache_file.exists():
         stats['cache_file_size'] = cache.cache_file.stat().st_size
-    
-    current_time = time.time()
-    entry_ages = []
-    
-    for key, entry in cache._cache.items():
-        entry_ttl = entry.get('ttl', cache.ttl)
-        entry_age = current_time - entry['timestamp']
-        
-        if entry_age > entry_ttl:
-            stats['expired_entries'] += 1
-        else:
-            stats['active_entries'] += 1
-            entry_ages.append(entry_age)
-    
-    if entry_ages:
-        stats['oldest_entry_age'] = max(entry_ages)
-        stats['newest_entry_age'] = min(entry_ages)
     
     return stats

@@ -173,9 +173,6 @@ class LeakIXAPI:
                 self.log("Bulk query (cached)", "debug")
             return cached_data, True
         
-        if not suppress_logs:
-            self.log("Opting for bulk search due to the availability of a Pro API Key.", "info")
-        
         # Bulk endpoint uses stream=True and doesn't need Accept header
         response = helpers.make_api_request(self.BASE_URL, endpoint, self.api_key, params=params, stream=True, include_accept=False, log_func=self.log)
         if not response:

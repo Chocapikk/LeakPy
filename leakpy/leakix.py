@@ -618,9 +618,6 @@ class LeakIX:
                     yield event
             return
         
-        if not self.silent:
-            self.log("Opting for bulk search due to the availability of a Pro API Key.", "info")
-        
         # Make streaming request
         # Use None for log_func if silent to suppress logs
         log_func = None if self.silent else self.log
@@ -823,209 +820,6 @@ class LeakIX:
             if output_file and should_close_file:
                 output_file.close()
 
-    def query(
-        self,
-        scope,
-        pages=None,
-        query_param="",
-        plugins=None,
-        fields=None,
-        use_bulk=False,
-        return_data_only=False,
-        output_file=None,
-    ):
-        """
-        Perform a query on the LeakIX website based on provided criteria.
-
-        Args:
-            scope (str): The scope of the search.
-            pages (int, optional): Number of pages to scrape. Defaults to LeakIX.DEFAULT_PAGES (2).
-            query_param (str, optional): The query string to be used. Defaults to an empty string.
-            plugins (list or str, optional): List or comma-separated string of plugin names. Defaults to None.
-            fields (list of str or None, optional): List of fields to extract from the results.
-            return_data_only (bool, optional): Return raw data only without processing. Defaults to False.
-            use_bulk (bool, optional): Whether to use bulk mode. Defaults to False.
-            output_file (file object, optional): File handle to write results in real-time. Defaults to None.
-
-        Returns:
-            list: List of processed strings or raw data based on `return_data_only` flag.
-        """
-        # Use default pages if not specified
-        if pages is None:
-            pages = self.DEFAULT_PAGES
-        
-        if self.api.is_api_pro is None:
-            self.api.is_api_pro = self.api.check_privilege("WpUserEnumHttp", "leak")
-
-        # Build query with plugins
-        query_param = self.api.build_query_with_plugins(query_param, plugins)
-        
-        start_time = time.time()
-        
-        def log_execution_time():
-            """Log execution time if not in silent mode."""
-            if not self.silent:
-                elapsed_time = time.time() - start_time
-                self.log(f"Execution time: {elapsed_time:.2f} seconds", "info")
-
-        # Use bulk mode if available and requested
-        if self.api.is_api_pro and use_bulk:
-            # If writing to file, suppress all output except completion message
-            if output_file:
-                original_silent = self.silent
-                self.silent = True
-                self.api.verbose = False
-            
-            # Show spinner in bulk mode if not silent and not writing to file
-            use_progress = self._should_use_progress_bulk(return_data_only, output_file)
-            
-            try:
-                if use_progress:
-                    console = self._create_console_for_progress()
-                    original_level = self._suppress_debug_logging()
-                    
-                    try:
-                        with Progress(
-                            SpinnerColumn(),
-                            TextColumn("[progress.description]{task.description}"),
-                            transient=False,
-                            console=console,
-                        ) as progress:
-                            task = progress.add_task("[cyan]Downloading and processing...", total=None)
-                            
-                            # Call API without progress (API doesn't handle UI)
-                            data, is_cached = self.api.query_bulk(query_param, suppress_logs=True)
-                            
-                            if data:
-                                progress.update(task, description="[cyan]Processing results...")
-                            
-                            if return_data_only:
-                                log_execution_time()
-                                return data
-                            
-                            # Suppress debug logs during processing
-                            results = self.process_and_print_data(data, fields, suppress_debug=True) if data else []
-                            
-                            # Write results to file if needed
-                            if results and output_file:
-                                for result in results:
-                                    helpers.write_result_item(output_file, result, fields)
-                            
-                            if results:
-                                progress.update(task, description=f"[green]✓ Found {len(results)} results")
-                            
-                            log_execution_time()
-                    finally:
-                        self._restore_logging_level(original_level)
-                else:
-                    data, is_cached = self.api.query_bulk(query_param, suppress_logs=bool(output_file))
-                    if return_data_only:
-                        log_execution_time()
-                        return data
-                    # Suppress debug logs when writing to file
-                    results = self.process_and_print_data(data, fields, suppress_debug=bool(output_file)) if data else []
-                    # Write results to file if needed
-                    if results and output_file:
-                        for result in results:
-                            helpers.write_result_item(output_file, result, fields)
-                
-                # Restore silent state before showing completion message
-                if output_file:
-                    self.silent = original_silent
-                
-                # Show completion message even when writing to file (but only if not silent)
-                if not self.silent and output_file and results:
-                    self.log(f"✓ Completed - {len(results)} results", "info")
-                
-                log_execution_time()
-                return results
-            finally:
-                # Restore original silent state
-                if output_file:
-                    self.silent = original_silent
-                    self.api.verbose = False
-
-        # Regular paginated search
-        results = []
-        last_data = None
-        
-        # Show progress bar if not silent
-        use_progress = self._should_use_progress(return_data_only)
-        
-        if use_progress:
-            # Create a console for rich output that won't conflict with logging
-            console = self._create_console_for_progress()
-            
-            # Temporarily disable debug logging to avoid conflicts with progress bar
-            original_level = self._suppress_debug_logging()
-            
-            try:
-                with Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    BarColumn(),
-                    TaskProgressColumn(),
-                    transient=False,
-                    console=console,
-                ) as progress:
-                    task = progress.add_task(
-                        f"[cyan]Fetching pages (0/{pages})...", 
-                        total=pages
-                    )
-                    
-                    for page in range(pages):
-                        data, is_cached = self.api.query_search(scope, page, query_param, suppress_logs=True)
-                        if not data:
-                            break
-                        last_data = data
-                        # Suppress debug logs during processing
-                        page_results = self.process_and_print_data(data, fields, suppress_debug=True)
-                        
-                        # Process page results and write to file if needed
-                        results.extend(page_results)
-                        if output_file:
-                            for result in page_results:
-                                helpers.write_result_item(output_file, result, fields)
-                        
-                        # Update progress bar
-                        progress.update(
-                            task, 
-                            advance=1,
-                            description=f"[cyan]Fetching pages ({page + 1}/{pages}) - {len(results)} results..."
-                        )
-                        
-                        # Only respect rate limit if we made an actual API request
-                        self._rate_limit_sleep(is_cached)
-                    
-                    # Final update
-                    progress.update(
-                        task,
-                        description=f"[green]✓ Completed - {len(results)} results"
-                    )
-            finally:
-                # Restore original logging level
-                self._restore_logging_level(original_level)
-        else:
-            # No progress bar, use simple logging
-            for page in range(pages):
-                data, is_cached = self.api.query_search(scope, page, query_param)
-                if not data:
-                    break
-                last_data = data
-                page_results = self.process_and_print_data(data, fields)
-                
-                # Process page results and write to file if needed
-                results.extend(page_results)
-                if output_file:
-                    for result in page_results:
-                        helpers.write_result_item(output_file, result, fields)
-                
-                # Only respect rate limit if we made an actual API request
-                self._rate_limit_sleep(is_cached)
-
-        log_execution_time()
-        return last_data if return_data_only else results
-    
     def _query_generator(
         self,
         scope,
@@ -1079,23 +873,15 @@ class LeakIX:
 
         # Regular paginated search - yield events as they are processed
         for page in range(pages):
-            if not self.silent:
-                self.log(f"Fetching page {page + 1}/{pages}...", "info")
-            
             data, is_cached = self.api.query_search(scope, page, query_param, suppress_logs=self.silent)
             if not data:
                 if not self.silent:
                     self.log(f"No more data available at page {page + 1}", "warning")
                 break
             
-            event_count = 0
             for event in self._process_data_generator(data, fields, suppress_debug=self.silent):
-                event_count += 1
                 if output_file:
                     helpers.write_result_item(output_file, event, fields)
                 yield event
-            
-            if not self.silent:
-                self.log(f"Page {page + 1}/{pages} processed: {event_count} events", "info")
             
             self._rate_limit_sleep(is_cached)

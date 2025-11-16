@@ -178,13 +178,13 @@ _SEARCH_EXAMPLES = """Examples:
   # Search with specific plugin
   leakpy search -q '+country:"France"' -P PulseConnectPlugin -p 3
 
-  # Extract specific fields (by default, all fields are returned)
+  # Extract specific fields (default: protocol,ip,port for URL formatting)
   leakpy search -q '+country:"France"' -f protocol,ip,port,host
 
-  # Get complete JSON and save to file (this is the default behavior)
-  leakpy search -q '+country:"France"' -o results.json
+  # Get complete JSON and save to file
+  leakpy search -q '+country:"France"' -f full -o results.json
 
-  # Use bulk mode (requires Pro API)
+  # Use bulk mode (requires Pro API, only works with scope="leak")
   leakpy search -q 'plugin:TraccarPlugin' -b -o results.txt
 
   # Silent mode for scripting
@@ -198,15 +198,11 @@ _STATS_CACHE_EXAMPLES = """Examples:
   # Display cache stats in silent mode (for scripting)
   leakpy --raw stats cache"""
 
-_STATS_OVERVIEW_EXAMPLES = """Examples:
-  # Display overview statistics
-  leakpy stats overview"""
-
 _STATS_QUERY_EXAMPLES = """Examples:
   # Analyze query statistics from a live query
   leakpy stats query -q '+country:"France"' -p 5
 
-  # Use bulk mode for faster queries (requires Pro API)
+  # Use bulk mode for faster queries (requires Pro API, only works with scope="leak")
   leakpy stats query -q 'plugin:TraccarPlugin' -b
 
   # Analyze statistics from a JSON file
