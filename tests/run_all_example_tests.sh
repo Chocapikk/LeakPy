@@ -1,32 +1,32 @@
 #!/bin/bash
-# Script pour exécuter tous les tests d'exemples de documentation
+# Script to run all documentation example tests
 
 if [ -z "$LEAKPY_TEST_API_KEY" ]; then
     echo "============================================================"
-    echo "ERREUR: La variable d'environnement LEAKPY_TEST_API_KEY n'est pas définie."
+    echo "ERROR: LEAKPY_TEST_API_KEY environment variable is not set."
     echo "============================================================"
     echo ""
-    echo "Pour exécuter les tests, définissez la variable d'environnement:"
+    echo "To run the tests, set the environment variable:"
     echo ""
-    echo "  export LEAKPY_TEST_API_KEY='votre_cle_api_48_caracteres'"
+    echo "  export LEAKPY_TEST_API_KEY='your_48_character_api_key'"
     echo "  bash tests/run_all_example_tests.sh"
     echo ""
-    echo "Ou en une seule ligne:"
-    echo "  LEAKPY_TEST_API_KEY='votre_cle' bash tests/run_all_example_tests.sh"
+    echo "Or in one line:"
+    echo "  LEAKPY_TEST_API_KEY='your_key' bash tests/run_all_example_tests.sh"
     echo ""
-    echo "Note: La clé API est utilisée uniquement en mémoire et ne remplacera"
-    echo "      PAS votre clé API locale stockée sur le disque."
+    echo "Note: The API key is used only in memory and will NOT overwrite"
+    echo "      your local API key stored on disk."
     echo "============================================================"
     exit 1
 fi
 
 echo "============================================================"
-echo "Exécution des tests d'exemples de documentation"
+echo "Running documentation example tests"
 echo "============================================================"
 echo ""
 
-# Test 1: Documentation RST (docs/examples.rst, docs/quickstart.rst, docs/api.rst)
-echo "Test 1/3: Documentation RST (docs/)"
+# Test 1: RST Documentation (docs/examples.rst, docs/quickstart.rst, docs/api.rst)
+echo "Test 1/3: RST Documentation (docs/)"
 echo "-----------------------------------"
 python3 tests/doc_examples_test.py
 RST_EXIT=$?
@@ -51,14 +51,14 @@ README_EXIT=$?
 
 echo ""
 echo "============================================================"
-echo "RÉSUMÉ"
+echo "SUMMARY"
 echo "============================================================"
-echo "Documentation RST: $([ $RST_EXIT -eq 0 ] && echo '✓ PASSÉ' || echo '✗ ÉCHOUÉ')"
-echo "EXAMPLES.md:       $([ $EXAMPLES_EXIT -eq 0 ] && echo '✓ PASSÉ' || echo '✗ ÉCHOUÉ')"
-echo "README.md:         $([ $README_EXIT -eq 0 ] && echo '✓ PASSÉ' || echo '✗ ÉCHOUÉ')"
+echo "RST Documentation: $([ $RST_EXIT -eq 0 ] && echo '✓ PASSED' || echo '✗ FAILED')"
+echo "EXAMPLES.md:       $([ $EXAMPLES_EXIT -eq 0 ] && echo '✓ PASSED' || echo '✗ FAILED')"
+echo "README.md:         $([ $README_EXIT -eq 0 ] && echo '✓ PASSED' || echo '✗ FAILED')"
 echo "============================================================"
 
-# Retourner un code d'erreur si au moins un test a échoué
+# Return an error code if at least one test failed
 if [ $RST_EXIT -ne 0 ] || [ $EXAMPLES_EXIT -ne 0 ] || [ $README_EXIT -ne 0 ]; then
     exit 1
 else

@@ -132,6 +132,7 @@ def analyze_query_results(results, fields_to_analyze=None, all_fields=False):
         'event_source',
         'host',
         'transport',
+        'tags',
     ]
     
     def _get_fields_list():
@@ -140,7 +141,11 @@ def analyze_query_results(results, fields_to_analyze=None, all_fields=False):
             all_field_paths = set()
             # Sample first 10 to get field structure
             for result in itertools.islice(results_list, 10):
-                if isinstance(result, dict):
+                # Convert L9Event to dict if needed
+                if hasattr(result, 'to_dict'):
+                    result_dict = result.to_dict()
+                    all_field_paths.update(helpers.flatten_dict(result_dict).keys())
+                elif isinstance(result, dict):
                     all_field_paths.update(helpers.flatten_dict(result).keys())
             return list(all_field_paths)
         elif fields_to_analyze is None:

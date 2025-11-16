@@ -287,14 +287,14 @@ def display_lookup_services_table(console, services, limit, total_count, show_ip
             services_table.add_column("Host", style="yellow")
             services_table.add_column("Protocol", style="cyan")
             services_table.add_column("Port", style="white")
-            services_table.add_column("IP", style="dim")
+            services_table.add_column("IP", style="yellow")
         else:
             services_table.add_column("Protocol", style="cyan")
             services_table.add_column("Port", style="white")
             services_table.add_column("Host", style="yellow")
         
-        services_table.add_column("Software", style="magenta")
-        services_table.add_column("Status", style="green")
+        services_table.add_column("Software", style="rgb(255,165,0)")
+        services_table.add_column("Status", style="cyan")
         
         for service in services_to_show:
             protocol = service.protocol or "N/A"
@@ -326,13 +326,13 @@ def display_lookup_leaks_table(console, leaks, limit, total_count, include_ip=Fa
     if leaks_to_show:
         console.print("[bold]Leaks:[/bold]")
         leaks_table = Table(box=box.SIMPLE)
-        leaks_table.add_column("Type", style="red")
+        leaks_table.add_column("Type", style="rgb(255,165,0)")
         leaks_table.add_column("Host", style="yellow")
         if include_ip:
-            leaks_table.add_column("IP", style="cyan")
+            leaks_table.add_column("IP", style="yellow")
         leaks_table.add_column("Port", style="white")
         leaks_table.add_column("Severity", style="yellow")
-        leaks_table.add_column("Size", style="white", justify="right")
+        leaks_table.add_column("Size", style="cyan", justify="right")
         
         for leak in leaks_to_show:
             leak_info = extract_leak_info(leak, include_ip=include_ip)

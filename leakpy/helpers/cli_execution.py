@@ -55,7 +55,7 @@ def execute_list_plugins(args, client, logger):
         for plugin in client.get_plugins():
             print(plugin)
     else:
-        from leakpy.cli_helpers import handle_list_plugins
+        from leakpy.helpers.display import handle_list_plugins
         handle_list_plugins(logger, client)
 
 
@@ -66,7 +66,7 @@ def execute_list_fields(args, client, logger):
         for field in fields:
             print(field)
     else:
-        from leakpy.cli_helpers import handle_list_fields
+        from leakpy.helpers.display import handle_list_fields
         if not handle_list_fields(logger, client, args.scope, args.query, None):
             sys.exit(1)
 
@@ -164,7 +164,7 @@ def execute_query_stats(args, logger, client=None):
 
 def execute_search(args, client, stdout_redirected):
     """Execute search command."""
-    from leakpy.cli_helpers import normalize_plugins
+    from leakpy.helpers.display import normalize_plugins
 
     # Validate bulk mode: only works with scope="leak"
     if args.bulk and args.scope == "service":
@@ -195,22 +195,43 @@ def execute_search(args, client, stdout_redirected):
 
     results = client.search(scope=args.scope, pages=args.pages, query=args.query, plugin=plugin_str, fields=fields, use_bulk=args.bulk, output=output_target)
 
-    # If output_target is set (raw mode or file output), we need to consume the generator
-    # to trigger the writing to output
-    if output_target:
-        # Consume generator to write to output
-        list(results)
+    # Determine if we should show progress bar and formatted display
+    # Show progress bar when not in raw/silent mode and stdout is a TTY
+    should_show_progress = (
+        not _is_raw_or_silent(args) and
+        sys.stdout.isatty()
+    )
+    should_display = (
+        not _is_raw_or_silent(args) and
+        not stdout_redirected and
+        not output_target  # Don't display if outputting to file
+    )
+
+    # Use consume_stream_with_progress when we should show progress bar
+    # This handles Ctrl+C gracefully and shows progress for bulk/paging mode
+    # It also collects results so we can display them even after interruption
+    if should_show_progress:
+        from .progress import consume_stream_with_progress
+        results_list, interrupted = consume_stream_with_progress(results, args, "Streaming results")
+        
+        # Always display formatted results if no output file was specified
+        # This includes displaying partial results after Ctrl+C interruption
+        if should_display and results_list:
+            display_search_results(results_list, fields)
     else:
-        # Display formatted results if no output file was specified and not in raw or silent mode
-        # Only show formatted output in interactive mode (not when stdout is redirected)
-        should_display = (
-            not _is_raw_or_silent(args) and
-            not stdout_redirected
-        )
-        if should_display:
-            # Show progress bar while consuming generator
-            from .progress import consume_stream_with_progress
-            results_list, interrupted = consume_stream_with_progress(results, args, "Streaming results")
-            
+        # If output_target is set (raw mode or file output), we need to consume the generator
+        # to trigger the writing to output
+        if output_target:
+            # Consume generator to write to output
+            # Results are written to file as they stream, so Ctrl+C will stop gracefully
+            try:
+                list(results)
+            except KeyboardInterrupt:
+                # Results already written to file up to interruption point
+                pass
+        elif should_display:
+            # Display formatted results without progress bar
+            # Without progress bar, we can't easily collect partial results on Ctrl+C
+            results_list = list(results)
             if results_list:
                 display_search_results(results_list, fields)

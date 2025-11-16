@@ -1,0 +1,1397 @@
+/*
+ * LeakIX Dark Theme for LeakPy Documentation
+ * Based on the LeakIX blog theme colors
+ * Adapted for sphinx_rtd_theme
+ */
+
+/* LeakIX Color Palette */
+:root {
+  --lkx-primary: #fab741;
+  --lkx-secondary: #ff8c00;
+  --lkx-accent: #e09b2a;
+  --lkx-bg-main: #181f27;
+  --lkx-bg-dark: #090e15;
+  --lkx-bg-light: #353a40;
+  --lkx-bg-card: #1f2731;
+  --lkx-text: #ffffff;
+  --lkx-text-light: #707070;
+  --lkx-text-dark: #090e15;
+  --lkx-border: #2a3138;
+  --lkx-success: #28a745;
+  --lkx-danger: #dc3545;
+  --lkx-warning: #f9b640;
+  --lkx-info: #17a2b8;
+}
+
+/* Import Roboto Mono font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&display=swap');
+
+/* Import Fira Code font for code blocks */
+@font-face {
+  font-family: 'Fira Code';
+  src: url('https://cdn.jsdelivr.net/gh/tonsky/FiraCode@5.2/distr/woff2/FiraCode-Regular.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/tonsky/FiraCode@5.2/distr/woff/FiraCode-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('https://cdn.jsdelivr.net/gh/tonsky/FiraCode@5.2/distr/woff2/FiraCode-Medium.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/tonsky/FiraCode@5.2/distr/woff/FiraCode-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('https://cdn.jsdelivr.net/gh/tonsky/FiraCode@5.2/distr/woff2/FiraCode-SemiBold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/tonsky/FiraCode@5.2/distr/woff/FiraCode-SemiBold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('https://cdn.jsdelivr.net/gh/tonsky/FiraCode@5.2/distr/woff2/FiraCode-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/tonsky/FiraCode@5.2/distr/woff/FiraCode-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Override body and main content */
+body {
+  background-color: var(--lkx-bg-main) !important;
+  color: var(--lkx-text) !important;
+  font-family: "Roboto Mono", monospace !important;
+}
+
+/* Remove any blue backgrounds from default theme - specifically target note/admonition elements */
+.rst-content .note,
+.rst-content .note p,
+.rst-content .note div,
+.rst-content .note span,
+.rst-content .admonition.note p,
+.rst-content .admonition.note div,
+.rst-content .admonition.note span {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.wy-body-for-nav {
+  background-color: var(--lkx-bg-main) !important;
+}
+
+/* Sidebar styling */
+.wy-side-nav-search {
+  background-color: var(--lkx-bg-dark) !important;
+  background: linear-gradient(135deg, var(--lkx-bg-dark) 0%, var(--lkx-bg-main) 100%) !important;
+}
+
+.wy-side-nav-search > a,
+.wy-side-nav-search .wy-dropdown > a {
+  color: var(--lkx-primary) !important;
+}
+
+.wy-side-nav-search input[type="text"] {
+  background-color: var(--lkx-bg-card) !important;
+  border: 1px solid var(--lkx-border) !important;
+  color: var(--lkx-text) !important;
+}
+
+.wy-side-nav-search input[type="text"]:focus {
+  border-color: var(--lkx-primary) !important;
+  box-shadow: 0 0 0 0.25rem rgba(250, 183, 65, 0.25) !important;
+}
+
+/* Navigation menu */
+.wy-menu-vertical {
+  background-color: var(--lkx-bg-dark) !important;
+}
+
+.wy-menu-vertical a {
+  color: var(--lkx-text) !important; /* Blanc pour tous les liens du toctree */
+}
+
+.wy-menu-vertical a:hover {
+  background-color: var(--lkx-bg-card) !important;
+  color: var(--lkx-primary) !important;
+}
+
+.wy-menu-vertical li.current > a {
+  background-color: var(--lkx-bg-card) !important;
+  color: var(--lkx-primary) !important;
+  border-right: 3px solid var(--lkx-primary) !important;
+}
+
+.wy-menu-vertical li.toctree-l1.current > a {
+  border-top: 1px solid var(--lkx-border) !important;
+  border-bottom: 1px solid var(--lkx-border) !important;
+}
+
+/* Sous-sections (toctree-l2, toctree-l3) - gris clair pour cohérence */
+.wy-menu-vertical li.toctree-l2 > a,
+.wy-menu-vertical li.toctree-l3 > a,
+.wy-menu-vertical li.toctree-l4 > a {
+  color: var(--lkx-text-light) !important; /* Gris clair comme les autres sous-éléments */
+  padding-left: 2rem !important;
+}
+
+.wy-menu-vertical li.toctree-l2 > a:hover,
+.wy-menu-vertical li.toctree-l3 > a:hover,
+.wy-menu-vertical li.toctree-l4 > a:hover {
+  color: var(--lkx-primary) !important; /* Orange au survol */
+  background-color: var(--lkx-bg-card) !important;
+}
+
+.wy-menu-vertical li.toctree-l2.current > a,
+.wy-menu-vertical li.toctree-l3.current > a,
+.wy-menu-vertical li.toctree-l4.current > a {
+  color: var(--lkx-primary) !important; /* Orange pour l'élément actif */
+  background-color: var(--lkx-bg-card) !important;
+}
+
+/* Top navigation bar */
+.wy-nav-top {
+  background-color: var(--lkx-bg-dark) !important;
+  background: linear-gradient(135deg, var(--lkx-bg-dark) 0%, var(--lkx-bg-main) 100%) !important;
+}
+
+.wy-nav-top a {
+  color: var(--lkx-primary) !important;
+}
+
+/* Main content area */
+.wy-nav-content {
+  background-color: var(--lkx-bg-main) !important;
+  color: var(--lkx-text) !important;
+}
+
+.rst-content {
+  color: var(--lkx-text) !important;
+}
+
+/* Headings */
+.rst-content h1,
+.rst-content h2,
+.rst-content h3,
+.rst-content h4,
+.rst-content h5,
+.rst-content h6 {
+  color: var(--lkx-text) !important;
+  font-weight: 300 !important;
+}
+
+.rst-content h1 {
+  border-bottom: 2px solid var(--lkx-primary) !important;
+  padding-bottom: 0.5rem !important;
+}
+
+/* Links */
+.rst-content a {
+  color: var(--lkx-primary) !important;
+  text-decoration: none !important;
+  transition: color 0.3s ease !important;
+}
+
+.rst-content a:hover {
+  color: var(--lkx-secondary) !important;
+  text-decoration: underline !important;
+}
+
+.rst-content a:visited {
+  color: var(--lkx-accent) !important;
+}
+
+/* Reference internal links (liens de référence interne) - Spécificité élevée pour écraser theme.js */
+.rst-content a.reference.internal,
+.rst-content a.reference.internal:link,
+.rst-content a.reference.internal:visited,
+.rst-content a.reference.internal:active,
+.rst-content .section a.reference.internal,
+.rst-content .section a.reference.internal:link,
+.rst-content .section a.reference.internal:visited,
+.rst-content .section a.reference.internal:active,
+body .rst-content a.reference.internal,
+body .rst-content a.reference.internal:link,
+body .rst-content a.reference.internal:visited,
+body .rst-content a.reference.internal:active {
+  color: var(--lkx-primary) !important; /* Orange LeakIX */
+  text-decoration: none !important;
+  border-bottom: 1px dotted var(--lkx-primary) !important;
+  transition: all 0.3s ease !important;
+}
+
+.rst-content a.reference.internal:hover,
+.rst-content .section a.reference.internal:hover,
+body .rst-content a.reference.internal:hover {
+  color: var(--lkx-secondary) !important; /* Orange plus foncé au survol */
+  border-bottom-color: var(--lkx-secondary) !important;
+  text-decoration: none !important;
+}
+
+/* Forcer les styles même si JavaScript applique des styles inline */
+.rst-content a.reference.internal[style*="color"],
+.rst-content a.reference.internal[style*="Color"] {
+  color: var(--lkx-primary) !important;
+}
+
+/* Code blocks */
+.rst-content pre {
+  background-color: var(--lkx-bg-dark) !important;
+  border: 1px solid var(--lkx-border) !important;
+  border-radius: 8px !important;
+  padding: 1rem !important;
+  font-family: "Fira Code", "Roboto Mono", monospace !important;
+  font-variant-ligatures: common-ligatures !important;
+  font-feature-settings: "liga" 1, "calt" 1 !important;
+}
+
+.rst-content pre code {
+  color: var(--lkx-text) !important;
+  background-color: transparent !important;
+  font-family: "Fira Code", "Roboto Mono", monospace !important;
+  font-variant-ligatures: common-ligatures !important;
+  font-feature-settings: "liga" 1, "calt" 1 !important;
+}
+
+.rst-content code {
+  background-color: rgba(250, 183, 65, 0.1) !important;
+  color: var(--lkx-primary) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  font-family: "Fira Code", "Roboto Mono", monospace !important;
+  font-variant-ligatures: common-ligatures !important;
+  font-feature-settings: "liga" 1, "calt" 1 !important;
+}
+
+.rst-content code.literal {
+  background-color: rgba(250, 183, 65, 0.1) !important;
+  color: var(--lkx-primary) !important;
+}
+
+/* Pygments Syntax Highlighting - LeakIX Dark Theme */
+.highlight {
+  background-color: var(--lkx-bg-dark) !important;
+  border: 1px solid var(--lkx-border) !important;
+  border-radius: 8px !important;
+}
+
+.highlight pre {
+  background-color: var(--lkx-bg-dark) !important;
+  color: var(--lkx-text) !important;
+  font-family: "Fira Code", "Roboto Mono", monospace !important;
+  font-variant-ligatures: common-ligatures !important;
+  font-feature-settings: "liga" 1, "calt" 1 !important;
+}
+
+/* Keywords (def, class, if, for, etc.) */
+.highlight .k,
+.highlight .kd,
+.highlight .kn,
+.highlight .kt,
+.highlight .kr {
+  color: #fab741 !important; /* LeakIX primary - jaune/orange */
+  font-weight: 500 !important;
+}
+
+/* Names (functions, classes, variables) - blanc pour meilleure lisibilité */
+/* Note: Les signatures (dt.sig) ont leurs propres règles plus spécifiques */
+.highlight .n,
+.highlight .nf,
+.highlight .nc,
+.highlight .nn,
+.highlight .na,
+.highlight .nv {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Strings */
+.highlight .s,
+.highlight .s1,
+.highlight .s2,
+.highlight .sb,
+.highlight .sc,
+.highlight .sd,
+.highlight .se,
+.highlight .sh,
+.highlight .sx,
+.highlight .sr,
+.highlight .ss {
+  color: #e09b2a !important; /* LeakIX accent - orange foncé */
+}
+
+/* String.Interpol (f-string interpolations like {variable}) */
+.highlight .si {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* String.Affix (f-string prefix like 'f') */
+.highlight .sa {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Numbers */
+.highlight .m,
+.highlight .mi,
+.highlight .mf,
+.highlight .mh,
+.highlight .il {
+  color: #f9b640 !important; /* LeakIX warning - jaune */
+}
+
+/* Comments */
+.highlight .c,
+.highlight .c1,
+.highlight .cm,
+.highlight .cp,
+.highlight .cs {
+  color: #707070 !important; /* LeakIX text-light - gris */
+  font-style: italic !important;
+}
+
+/* Operators */
+.highlight .o,
+.highlight .ow {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Punctuation */
+.highlight .p {
+  color: var(--lkx-text-light) !important;
+}
+
+/* Built-in functions/types - blanc pour meilleure lisibilité */
+.highlight .nb,
+.highlight .bp,
+.highlight .vc,
+.highlight .vg,
+.highlight .vi {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Decorators */
+.highlight .nd {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Attributes - blanc pour meilleure lisibilité */
+.highlight .na,
+.highlight .nv {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Error/Exception */
+.highlight .err {
+  color: #dc3545 !important; /* LeakIX danger - rouge */
+  background-color: transparent !important;
+}
+
+/* Generic */
+.highlight .g {
+  color: var(--lkx-text) !important;
+}
+
+/* Generic.Output */
+.highlight .go {
+  color: var(--lkx-text-light) !important;
+}
+
+/* Generic.Prompt */
+.highlight .gp {
+  color: var(--lkx-primary) !important;
+  font-weight: bold !important;
+}
+
+/* Generic.Strong */
+.highlight .gs {
+  font-weight: bold !important;
+}
+
+/* Generic.Subheading */
+.highlight .gu {
+  color: var(--lkx-primary) !important;
+  font-weight: bold !important;
+}
+
+/* Generic.Traceback */
+.highlight .gt {
+  color: #dc3545 !important; /* LeakIX danger */
+}
+
+/* Name.Attribute - blanc pour meilleure lisibilité */
+.highlight .na {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Name.Builtin */
+.highlight .nb {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Name.Class */
+.highlight .nc {
+  color: #ff8c00 !important; /* LeakIX secondary */
+  font-weight: 500 !important;
+}
+
+/* Name.Constant */
+.highlight .no {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Name.Decorator */
+.highlight .nd {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Name.Entity */
+.highlight .ni {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Name.Exception */
+.highlight .ne {
+  color: #dc3545 !important; /* LeakIX danger */
+  font-weight: bold !important;
+}
+
+/* Name.Function */
+.highlight .nf {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Name.Label - blanc pour meilleure lisibilité */
+.highlight .nl {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Name.Namespace - blanc pour meilleure lisibilité */
+.highlight .nn {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Name.Other */
+.highlight .nx {
+  color: var(--lkx-text) !important;
+}
+
+/* Name.Property - blanc pour meilleure lisibilité */
+.highlight .py {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Name.Tag */
+.highlight .nt {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Name.Variable */
+.highlight .nv {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Name.Variable.Class */
+.highlight .vc {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Name.Variable.Global */
+.highlight .vg {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Name.Variable.Instance */
+.highlight .vi {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Literal.Number */
+.highlight .m {
+  color: #f9b640 !important; /* LeakIX warning */
+}
+
+/* Literal.Number.Float */
+.highlight .mf {
+  color: #f9b640 !important; /* LeakIX warning */
+}
+
+/* Literal.Number.Hex */
+.highlight .mh {
+  color: #f9b640 !important; /* LeakIX warning */
+}
+
+/* Literal.Number.Integer */
+.highlight .mi {
+  color: #f9b640 !important; /* LeakIX warning */
+}
+
+/* Literal.Number.Long */
+.highlight .il {
+  color: #f9b640 !important; /* LeakIX warning */
+}
+
+/* Literal.Number.Oct */
+.highlight .mo {
+  color: #f9b640 !important; /* LeakIX warning */
+}
+
+/* Literal.String */
+.highlight .s {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Affix (already defined above, keeping for reference) */
+
+/* Literal.String.Backtick */
+.highlight .sb {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Char */
+.highlight .sc {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Doc */
+.highlight .sd {
+  color: #707070 !important; /* LeakIX text-light */
+  font-style: italic !important;
+}
+
+/* Literal.String.Double */
+.highlight .s2 {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Escape */
+.highlight .se {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Literal.String.Heredoc */
+.highlight .sh {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Interpol (already defined above) */
+
+/* Literal.String.Other */
+.highlight .sx {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Regex */
+.highlight .sr {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Literal.String.Single */
+.highlight .s1 {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Symbol */
+.highlight .ss {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Operator */
+.highlight .o {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Operator.Word */
+.highlight .ow {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Punctuation */
+.highlight .p {
+  color: var(--lkx-text-light) !important;
+}
+
+/* Text.Whitespace */
+.highlight .w {
+  color: var(--lkx-text-light) !important;
+}
+
+/* Additional Pygments tokens - Complete coverage */
+
+/* Keyword.Constant */
+.highlight .kc {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Keyword.Declaration */
+.highlight .kd {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Keyword.Namespace */
+.highlight .kn {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Keyword.Pseudo */
+.highlight .kp {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Keyword.Reserved */
+.highlight .kr {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Keyword.Type */
+.highlight .kt {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Literal.Date */
+.highlight .ld {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Name.Builtin.Pseudo - blanc pour meilleure lisibilité */
+.highlight .bp {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Name.Function.Magic */
+.highlight .fm {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Operator.Word (covers both Name.Other.Magic and Operator.Word) */
+.highlight .ow {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Literal.Number.Bin */
+.highlight .mb {
+  color: #f9b640 !important; /* LeakIX warning */
+}
+
+/* Literal.Number.Imag (already covered by .mi above, but explicit) */
+
+/* Literal.String.Delimiter */
+.highlight .dl {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Escape */
+.highlight .se {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Literal.String.Interpol (already defined above) */
+
+/* Literal.String.Other */
+.highlight .sx {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Regex */
+.highlight .sr {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Literal.String.Symbol */
+.highlight .ss {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Name.Builtin - blanc pour meilleure lisibilité */
+.highlight .nb {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Name.Class.Magic - blanc pour meilleure lisibilité */
+.highlight .nc {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+  font-weight: 500 !important;
+}
+
+/* Name.Exception */
+.highlight .ne {
+  color: #dc3545 !important; /* LeakIX danger */
+  font-weight: bold !important;
+}
+
+/* Name.Function - blanc pour meilleure lisibilité */
+.highlight .nf {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Name.Function.Magic - blanc pour meilleure lisibilité */
+.highlight .fm {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Name.Other and Name.Other.Special */
+.highlight .nx {
+  color: var(--lkx-text) !important;
+}
+
+/* Name.Tag */
+.highlight .nt {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Name.Variable.Class */
+.highlight .vc {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Name.Variable.Global */
+.highlight .vg {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Name.Variable.Instance */
+.highlight .vi {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Name.Variable.Magic */
+.highlight .vm {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Generic.Deleted */
+.highlight .gd {
+  color: #dc3545 !important; /* LeakIX danger */
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+/* Generic.Emph */
+.highlight .ge {
+  font-style: italic !important;
+}
+
+/* Generic.Error */
+.highlight .gr {
+  color: #dc3545 !important; /* LeakIX danger */
+}
+
+/* Generic.Heading */
+.highlight .gh {
+  color: var(--lkx-primary) !important;
+  font-weight: bold !important;
+}
+
+/* Generic.Inserted */
+.highlight .gi {
+  color: #28a745 !important; /* LeakIX success */
+  background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+/* Generic.Output */
+.highlight .go {
+  color: var(--lkx-text-light) !important;
+}
+
+/* Generic.Prompt */
+.highlight .gp {
+  color: var(--lkx-primary) !important;
+  font-weight: bold !important;
+}
+
+/* Generic.Strong */
+.highlight .gs {
+  font-weight: bold !important;
+}
+
+/* Generic.Subheading */
+.highlight .gu {
+  color: var(--lkx-primary) !important;
+  font-weight: bold !important;
+}
+
+/* Generic.Traceback */
+.highlight .gt {
+  color: #dc3545 !important; /* LeakIX danger */
+}
+
+/* Comment.Hashbang */
+.highlight .ch {
+  color: #707070 !important; /* LeakIX text-light */
+  font-style: italic !important;
+}
+
+/* Comment.Multiline */
+.highlight .cm {
+  color: #707070 !important; /* LeakIX text-light */
+  font-style: italic !important;
+}
+
+/* Comment.Single */
+.highlight .c1 {
+  color: #707070 !important; /* LeakIX text-light */
+  font-style: italic !important;
+}
+
+/* Comment.Special */
+.highlight .cs {
+  color: #707070 !important; /* LeakIX text-light */
+  font-style: italic !important;
+  font-weight: bold !important;
+}
+
+/* Comment.Preproc */
+.highlight .cp {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Comment.PreprocFile */
+.highlight .cpf {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Punctuation.Marker */
+.highlight .pm {
+  color: var(--lkx-text-light) !important;
+}
+
+/* Text.Whitespace */
+.highlight .w {
+  color: var(--lkx-text-light) !important;
+}
+
+/* Additional specific tokens that might be missing */
+
+/* Name.Function.Magic (Python __init__, __str__, etc.) - blanc pour meilleure lisibilité */
+.highlight .fm {
+  color: var(--lkx-text) !important; /* Blanc pour meilleure lisibilité */
+}
+
+/* Name.Variable.Magic (Python __name__, __file__, etc.) */
+.highlight .vm {
+  color: #ff8c00 !important; /* LeakIX secondary */
+}
+
+/* Literal.Number.Bin (binary numbers like 0b1010) */
+.highlight .mb {
+  color: #f9b640 !important; /* LeakIX warning */
+}
+
+/* Literal.Date */
+.highlight .ld {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Literal.String.Delimiter */
+.highlight .dl {
+  color: #e09b2a !important; /* LeakIX accent */
+}
+
+/* Keyword.Constant (True, False, None in Python) */
+.highlight .kc {
+  color: #fab741 !important; /* LeakIX primary */
+  font-weight: 500 !important;
+}
+
+/* Keyword.Pseudo */
+.highlight .kp {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Comment.Hashbang (#!/usr/bin/env python) */
+.highlight .ch {
+  color: #707070 !important; /* LeakIX text-light */
+  font-style: italic !important;
+}
+
+/* Comment.PreprocFile */
+.highlight .cpf {
+  color: #fab741 !important; /* LeakIX primary */
+}
+
+/* Punctuation.Marker */
+.highlight .pm {
+  color: var(--lkx-text-light) !important;
+}
+
+/* Generic.Deleted (diff deletions) */
+.highlight .gd {
+  color: #dc3545 !important; /* LeakIX danger */
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+/* Generic.Inserted (diff insertions) */
+.highlight .gi {
+  color: #28a745 !important; /* LeakIX success */
+  background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+/* Generic.Error */
+.highlight .gr {
+  color: #dc3545 !important; /* LeakIX danger */
+}
+
+/* Generic.Heading */
+.highlight .gh {
+  color: var(--lkx-primary) !important;
+  font-weight: bold !important;
+}
+
+/* Default fallback for any unhandled tokens */
+.highlight span {
+  color: var(--lkx-text) !important;
+}
+
+/* Blockquotes */
+.rst-content blockquote {
+  border-left: 4px solid var(--lkx-primary) !important;
+  padding-left: 1rem !important;
+  color: var(--lkx-text-light) !important;
+  font-style: italic !important;
+  background-color: var(--lkx-bg-card) !important;
+  margin-left: 0 !important;
+  padding: 1rem !important;
+  border-radius: 4px !important;
+}
+
+/* Tables */
+.rst-content table.docutils {
+  background-color: var(--lkx-bg-card) !important;
+  border: 1px solid var(--lkx-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  width: 100% !important;
+}
+
+.rst-content table.docutils thead {
+  background-color: var(--lkx-bg-dark) !important;
+}
+
+.rst-content table.docutils thead th {
+  color: var(--lkx-primary) !important;
+  background-color: var(--lkx-bg-dark) !important;
+  border-bottom: 2px solid var(--lkx-primary) !important;
+  border-right: 1px solid var(--lkx-border) !important;
+  padding: 1rem !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+}
+
+.rst-content table.docutils thead th:last-child {
+  border-right: none !important;
+}
+
+.rst-content table.docutils tbody tr {
+  border-bottom: 1px solid var(--lkx-border) !important;
+  background-color: var(--lkx-bg-card) !important;
+}
+
+.rst-content table.docutils tbody tr:last-child {
+  border-bottom: none !important;
+}
+
+.rst-content table.docutils tbody tr:hover {
+  background-color: rgba(250, 183, 65, 0.1) !important;
+}
+
+.rst-content table.docutils tbody td {
+  padding: 0.75rem 1rem !important;
+  color: var(--lkx-text) !important;
+  border-right: 1px solid var(--lkx-border) !important;
+  background-color: transparent !important;
+}
+
+.rst-content table.docutils tbody td:last-child {
+  border-right: none !important;
+}
+
+/* Tables génériques (si pas .docutils) */
+.rst-content table {
+  background-color: var(--lkx-bg-card) !important;
+  border: 1px solid var(--lkx-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.rst-content table thead {
+  background-color: var(--lkx-bg-dark) !important;
+}
+
+.rst-content table thead th {
+  color: var(--lkx-primary) !important;
+  background-color: var(--lkx-bg-dark) !important;
+  border-bottom: 2px solid var(--lkx-primary) !important;
+  border-right: 1px solid var(--lkx-border) !important;
+  padding: 1rem !important;
+  font-weight: 600 !important;
+}
+
+.rst-content table thead th:last-child {
+  border-right: none !important;
+}
+
+.rst-content table tbody tr {
+  border-bottom: 1px solid var(--lkx-border) !important;
+  background-color: var(--lkx-bg-card) !important;
+}
+
+.rst-content table tbody tr:last-child {
+  border-bottom: none !important;
+}
+
+.rst-content table tbody tr:hover {
+  background-color: rgba(250, 183, 65, 0.1) !important;
+}
+
+.rst-content table tbody td {
+  padding: 0.75rem 1rem !important;
+  color: var(--lkx-text) !important;
+  border-right: 1px solid var(--lkx-border) !important;
+  background-color: transparent !important;
+}
+
+.rst-content table tbody td:last-child {
+  border-right: none !important;
+}
+
+/* Admonitions (notes, warnings, etc.) */
+.rst-content .admonition {
+  background-color: var(--lkx-bg-card) !important;
+  border: 1px solid var(--lkx-border) !important;
+  border-left: 4px solid var(--lkx-primary) !important;
+  border-radius: 8px !important;
+  padding: 1rem !important;
+}
+
+/* Override any default blue backgrounds from sphinx_rtd_theme */
+.rst-content .admonition,
+.rst-content .admonition *,
+.rst-content .note,
+.rst-content .note * {
+  background-color: var(--lkx-bg-card) !important;
+  background: var(--lkx-bg-card) !important;
+}
+
+.rst-content .admonition p,
+.rst-content .admonition div,
+.rst-content .admonition ul,
+.rst-content .admonition ol,
+.rst-content .admonition li {
+  color: var(--lkx-text) !important;
+}
+
+.rst-content .admonition-title {
+  color: var(--lkx-primary) !important;
+  font-weight: 500 !important;
+}
+
+.rst-content .admonition.note {
+  border-left-color: var(--lkx-primary) !important;
+  background-color: var(--lkx-bg-card) !important;
+  background: var(--lkx-bg-card) !important;
+  border: 1px solid rgba(250, 183, 65, 0.3) !important;
+}
+
+.rst-content .admonition.note * {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.rst-content .admonition.note .admonition-title {
+  color: var(--lkx-primary) !important; /* Jaune/orange LeakIX */
+  font-weight: 600 !important;
+}
+
+.rst-content .admonition.note p,
+.rst-content .admonition.note div,
+.rst-content .admonition.note ul,
+.rst-content .admonition.note ol,
+.rst-content .admonition.note li {
+  color: var(--lkx-text) !important; /* Texte blanc standard */
+}
+
+.rst-content .admonition.warning {
+  border-left-color: var(--lkx-warning) !important;
+  background-color: rgba(249, 182, 64, 0.15) !important;
+  border: 1px solid rgba(249, 182, 64, 0.3) !important;
+}
+
+.rst-content .admonition.warning .admonition-title {
+  color: #ffc107 !important; /* Jaune clair pour meilleure visibilité */
+  font-weight: 600 !important;
+}
+
+.rst-content .admonition.warning p,
+.rst-content .admonition.warning div,
+.rst-content .admonition.warning ul,
+.rst-content .admonition.warning ol,
+.rst-content .admonition.warning li {
+  color: #fff8e1 !important; /* Texte clair pour contraste */
+}
+
+.rst-content .admonition.danger,
+.rst-content .admonition.error {
+  border-left-color: var(--lkx-danger) !important;
+  background-color: rgba(220, 53, 69, 0.15) !important;
+  border: 1px solid rgba(220, 53, 69, 0.3) !important;
+}
+
+.rst-content .admonition.danger .admonition-title,
+.rst-content .admonition.error .admonition-title {
+  color: #ff6b6b !important; /* Rouge clair pour meilleure visibilité */
+  font-weight: 600 !important;
+}
+
+.rst-content .admonition.danger p,
+.rst-content .admonition.danger div,
+.rst-content .admonition.danger ul,
+.rst-content .admonition.danger ol,
+.rst-content .admonition.danger li,
+.rst-content .admonition.error p,
+.rst-content .admonition.error div,
+.rst-content .admonition.error ul,
+.rst-content .admonition.error ol,
+.rst-content .admonition.error li {
+  color: #ffebee !important; /* Texte clair pour contraste */
+}
+
+.rst-content .admonition.tip {
+  border-left-color: var(--lkx-success) !important;
+  background-color: rgba(40, 167, 69, 0.15) !important;
+  border: 1px solid rgba(40, 167, 69, 0.3) !important;
+}
+
+.rst-content .admonition.tip .admonition-title {
+  color: #4caf50 !important; /* Vert clair pour meilleure visibilité */
+  font-weight: 600 !important;
+}
+
+.rst-content .admonition.tip p,
+.rst-content .admonition.tip div,
+.rst-content .admonition.tip ul,
+.rst-content .admonition.tip ol,
+.rst-content .admonition.tip li {
+  color: #e8f5e9 !important; /* Texte clair pour contraste */
+}
+
+/* Definition lists */
+.rst-content dl {
+  color: var(--lkx-text) !important;
+}
+
+.rst-content dl dt {
+  color: var(--lkx-primary) !important;
+  font-weight: 500 !important;
+}
+
+.rst-content dl dd {
+  color: var(--lkx-text-light) !important;
+  margin-left: 2rem !important;
+}
+
+/* Field lists */
+.rst-content dl.field-list dt {
+  color: var(--lkx-primary) !important;
+}
+
+.rst-content dl.field-list dd {
+  color: var(--lkx-text-light) !important; /* Gris clair au lieu de blanc */
+}
+
+/* Command option signatures (CLI parameters) */
+.rst-content dt.sig,
+.rst-content dt.sig-object,
+.rst-content dt.sig-object.std {
+  color: var(--lkx-text) !important;
+  background-color: transparent !important;
+}
+
+/* Noms de classes, fonctions - Orange */
+.rst-content dt.sig .sig-name,
+.rst-content dt.sig .descname,
+.rst-content dt.sig .sig-name .pre,
+.rst-content dt.sig .descname .pre {
+  color: var(--lkx-primary) !important; /* Orange LeakIX pour les noms */
+  font-weight: 500 !important;
+}
+
+/* Préfixes de classe (leakpy.leakix.) - Blanc */
+.rst-content dt.sig .sig-prename,
+.rst-content dt.sig .descclassname,
+.rst-content dt.sig .sig-prename .pre,
+.rst-content dt.sig .descclassname .pre {
+  color: var(--lkx-text) !important; /* Blanc pour les préfixes */
+}
+
+/* Noms de paramètres dans les signatures - Orange */
+.rst-content dt.sig .sig-param .n,
+.rst-content dt.sig .sig-param .n .pre,
+.rst-content dt.sig-object .sig-param .n,
+.rst-content dt.sig-object .sig-param .n .pre,
+.rst-content dt.sig-object.std .sig-param .n,
+.rst-content dt.sig-object.std .sig-param .n .pre {
+  color: var(--lkx-primary) !important; /* Orange pour les noms de paramètres */
+  font-weight: 500 !important;
+}
+
+/* Valeurs par défaut des paramètres (None, True, False, etc.) - Gris clair */
+.rst-content dt.sig .sig-param .default_value,
+.rst-content dt.sig .sig-param .default_value .pre,
+.rst-content dt.sig-object .sig-param .default_value,
+.rst-content dt.sig-object .sig-param .default_value .pre,
+.rst-content dt.sig-object.std .sig-param .default_value,
+.rst-content dt.sig-object.std .sig-param .default_value .pre {
+  color: var(--lkx-text-light) !important; /* Gris clair pour les valeurs par défaut */
+}
+
+/* Opérateurs (=, etc.) dans les signatures - Blanc */
+.rst-content dt.sig .sig-param .o,
+.rst-content dt.sig .sig-param .o .pre,
+.rst-content dt.sig-object .sig-param .o,
+.rst-content dt.sig-object .sig-param .o .pre,
+.rst-content dt.sig-object.std .sig-param .o,
+.rst-content dt.sig-object.std .sig-param .o .pre {
+  color: var(--lkx-text) !important; /* Blanc pour les opérateurs */
+}
+
+.rst-content dt.sig .headerlink {
+  color: var(--lkx-primary) !important; /* Orange pour le lien d'ancrage */
+  opacity: 0.7 !important;
+  transition: opacity 0.3s ease !important;
+}
+
+.rst-content dt.sig .headerlink:hover {
+  color: var(--lkx-secondary) !important; /* Orange plus foncé au survol */
+  opacity: 1 !important;
+}
+
+/* Descriptions of command options (dd after dt.sig) */
+.rst-content dt.sig + dd,
+.rst-content dt.sig-object + dd,
+.rst-content dt.sig-object.std + dd {
+  color: var(--lkx-text) !important; /* Blanc pour les descriptions */
+}
+
+.rst-content dt.sig + dd p,
+.rst-content dt.sig-object + dd p,
+.rst-content dt.sig-object.std + dd p {
+  color: var(--lkx-text) !important; /* Blanc pour les paragraphes de description */
+}
+
+/* Sous-sections dans le contenu (rubriques) */
+.rst-content .section .section,
+.rst-content .section .section h2,
+.rst-content .section .section h3,
+.rst-content .section .section h4 {
+  color: var(--lkx-text) !important; /* Texte standard, pas blanc pur */
+}
+
+.rst-content .section .section a {
+  color: var(--lkx-primary) !important;
+}
+
+.rst-content .section .section a:hover {
+  color: var(--lkx-secondary) !important;
+}
+
+/* Footer */
+.rst-footer-buttons {
+  border-top: 1px solid var(--lkx-border) !important;
+  background-color: var(--lkx-bg-dark) !important; /* Bleu foncé LeakIX */
+}
+
+.rst-footer-buttons a {
+  background-color: var(--lkx-bg-dark) !important; /* Bleu foncé LeakIX */
+  color: var(--lkx-secondary) !important; /* Orange LeakIX */
+  border: 1px solid var(--lkx-border) !important;
+  border-radius: 4px !important;
+  padding: 8px 16px !important;
+  display: inline-block !important;
+  transition: all 0.3s ease !important;
+  font-weight: 500 !important;
+}
+
+.rst-footer-buttons a:hover {
+  background-color: var(--lkx-bg-card) !important;
+  color: var(--lkx-primary) !important; /* Jaune/orange LeakIX au survol */
+  border-color: var(--lkx-primary) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Version selector */
+.rst-versions {
+  background-color: var(--lkx-bg-dark) !important;
+  border-top: 1px solid var(--lkx-border) !important;
+}
+
+.rst-versions .rst-current-version {
+  background-color: var(--lkx-bg-card) !important;
+  color: var(--lkx-primary) !important;
+}
+
+.rst-versions a {
+  color: var(--lkx-text-light) !important;
+}
+
+.rst-versions a:hover {
+  color: var(--lkx-primary) !important;
+}
+
+/* Search results */
+.rst-content .highlighted {
+  background-color: rgba(250, 183, 65, 0.3) !important;
+  color: var(--lkx-text) !important;
+  padding: 0 2px !important;
+}
+
+/* Scrollbar styling (webkit browsers) */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--lkx-bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--lkx-bg-light);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--lkx-primary);
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .wy-nav-content {
+    padding: 1rem !important;
+  }
+  
+  .rst-content h1 {
+    font-size: 2rem !important;
+  }
+  
+  .rst-content h2 {
+    font-size: 1.75rem !important;
+  }
+}

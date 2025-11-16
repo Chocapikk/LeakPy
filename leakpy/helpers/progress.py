@@ -28,6 +28,36 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
 
+def _get_event_key(event):
+    """Generate a unique key for an event to identify duplicates.
+    
+    Uses URL if available, otherwise uses protocol+ip+port combination.
+    This allows deduplication of clearly identical events.
+    """
+    # First try URL (most reliable identifier)
+    url = getattr(event, 'url', None)
+    if url:
+        return ('url', url)
+    
+    # Otherwise use protocol + ip + port combination
+    protocol = getattr(event, 'protocol', None) or ''
+    ip = getattr(event, 'ip', None) or ''
+    port = getattr(event, 'port', None)
+    port_str = str(port) if port is not None else ''
+    
+    # If we have at least protocol and ip, use that as key
+    if protocol and ip:
+        return ('protocol_ip_port', (protocol, ip, port_str))
+    
+    # Fallback: use host if available
+    host = getattr(event, 'host', None)
+    if host:
+        return ('host', host)
+    
+    # Last resort: return None to indicate we can't create a unique key
+    return None
+
+
 def consume_stream_with_progress(results, args, description_prefix="Streaming results"):
     """
     Consume a generator stream with progress bar and return results list.
@@ -42,6 +72,8 @@ def consume_stream_with_progress(results, args, description_prefix="Streaming re
     """
     console = Console(file=sys.stderr)
     results_list = []
+    unique_events = set()  # Track unique events for deduplication
+    unique_urls = set()  # Track unique URLs separately for display
     
     # Determine progress bar configuration based on mode
     if args.bulk:
@@ -54,7 +86,7 @@ def consume_stream_with_progress(results, args, description_prefix="Streaming re
         initial_desc = f"[cyan]{description_prefix}..."
         events_per_page = None
     
-    # Common progress bar setup
+    # Common progress bar setup - simplified description
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -73,18 +105,41 @@ def consume_stream_with_progress(results, args, description_prefix="Streaming re
             for event in results:
                 results_list.append(event)
                 event_count += 1
+                
+                # Track unique events using same logic as display
+                event_key = _get_event_key(event)
+                if event_key is not None:
+                    unique_events.add(event_key)
+                
+                # Track unique URLs separately for display
+                url = getattr(event, 'url', None)
+                if url:
+                    unique_urls.add(url)
+                
                 current_time = time.time()
                 elapsed = current_time - start_time
                 rate = event_count / elapsed if elapsed > 0 else 0
                 
                 # Build description based on mode
-                if args.bulk:
-                    desc = f"[cyan]{description_prefix}... [yellow]{event_count}[/yellow] events received ({rate:.1f} events/s)"
-                elif args.pages > 1:
-                    estimated_page = min((event_count - 1) // events_per_page + 1, args.pages)
-                    desc = f"[cyan]{description_prefix} ([yellow]{event_count}[/yellow] events, page {estimated_page}/{args.pages}) - {rate:.1f} events/s"
+                # Show unique events count (and unique URLs if available)
+                unique_count = len(unique_events)
+                if unique_urls:
+                    unique_url_count = len(unique_urls)
+                    if args.bulk:
+                        desc = f"[cyan]{description_prefix}... [yellow]{event_count}[/yellow] events, [green]{unique_count}[/green] unique ({unique_url_count} URLs) ({rate:.1f} events/s)"
+                    elif args.pages > 1:
+                        estimated_page = min((event_count - 1) // events_per_page + 1, args.pages)
+                        desc = f"[cyan]{description_prefix} ([yellow]{event_count}[/yellow] events, [green]{unique_count}[/green] unique ({unique_url_count} URLs), page {estimated_page}/{args.pages}) - {rate:.1f} events/s"
+                    else:
+                        desc = f"[cyan]{description_prefix}... [yellow]{event_count}[/yellow] events, [green]{unique_count}[/green] unique ({unique_url_count} URLs) ({rate:.1f} events/s)"
                 else:
-                    desc = f"[cyan]{description_prefix}... [yellow]{event_count}[/yellow] events ({rate:.1f} events/s)"
+                    if args.bulk:
+                        desc = f"[cyan]{description_prefix}... [yellow]{event_count}[/yellow] events, [green]{unique_count}[/green] unique ({rate:.1f} events/s)"
+                    elif args.pages > 1:
+                        estimated_page = min((event_count - 1) // events_per_page + 1, args.pages)
+                        desc = f"[cyan]{description_prefix} ([yellow]{event_count}[/yellow] events, [green]{unique_count}[/green] unique, page {estimated_page}/{args.pages}) - {rate:.1f} events/s"
+                    else:
+                        desc = f"[cyan]{description_prefix}... [yellow]{event_count}[/yellow] events, [green]{unique_count}[/green] unique ({rate:.1f} events/s)"
                 
                 # Update progress bar at each streamed event
                 progress.update(task, advance=1, description=desc)
@@ -105,23 +160,43 @@ def consume_stream_with_progress(results, args, description_prefix="Streaming re
             progress.stop()
             
             # Print a simple message on a new line
-            if args.pages > 1:
-                console.print(f"[yellow]⚠ Interrupted - {event_count} events collected from {args.pages} pages ({rate:.1f} events/s)")
-            elif args.bulk:
-                console.print(f"[yellow]⚠ Interrupted - {event_count} events collected ({rate:.1f} events/s)")
+            unique_count = len(unique_events)
+            unique_url_count = len(unique_urls)
+            if unique_urls:
+                if args.bulk:
+                    console.print(f"[yellow]⚠ Interrupted - {event_count} events collected, [green]{unique_count}[/green] unique ({unique_url_count} URLs) ({rate:.1f} events/s)")
+                elif args.pages > 1:
+                    console.print(f"[yellow]⚠ Interrupted - {event_count} events collected, [green]{unique_count}[/green] unique ({unique_url_count} URLs) from {args.pages} pages ({rate:.1f} events/s)")
+                else:
+                    console.print(f"[yellow]⚠ Interrupted - {event_count} events collected, [green]{unique_count}[/green] unique ({unique_url_count} URLs) ({rate:.1f} events/s)")
             else:
-                console.print(f"[yellow]⚠ Interrupted - {event_count} events collected ({rate:.1f} events/s)")
+                if args.bulk:
+                    console.print(f"[yellow]⚠ Interrupted - {event_count} events collected, [green]{unique_count}[/green] unique ({rate:.1f} events/s)")
+                elif args.pages > 1:
+                    console.print(f"[yellow]⚠ Interrupted - {event_count} events collected, [green]{unique_count}[/green] unique from {args.pages} pages ({rate:.1f} events/s)")
+                else:
+                    console.print(f"[yellow]⚠ Interrupted - {event_count} events collected, [green]{unique_count}[/green] unique ({rate:.1f} events/s)")
         
         # Final update (only if not interrupted, as interrupted case is handled above)
         if not interrupted:
             elapsed = time.time() - start_time
             rate = event_count / elapsed if elapsed > 0 else 0
-            if args.pages > 1:
-                final_desc = f"[green]✓ Completed - {event_count} events streamed from {args.pages} pages ({rate:.1f} events/s)"
-            elif args.bulk:
-                final_desc = f"[green]✓ Completed - {event_count} events streamed ({rate:.1f} events/s)"
+            unique_count = len(unique_events)
+            unique_url_count = len(unique_urls)
+            if unique_urls:
+                if args.bulk:
+                    final_desc = f"[green]✓ Completed - {event_count} events streamed, [green]{unique_count}[/green] unique ({unique_url_count} URLs) ({rate:.1f} events/s)"
+                elif args.pages > 1:
+                    final_desc = f"[green]✓ Completed - {event_count} events streamed, [green]{unique_count}[/green] unique ({unique_url_count} URLs) from {args.pages} pages ({rate:.1f} events/s)"
+                else:
+                    final_desc = f"[green]✓ Completed - {event_count} events, [green]{unique_count}[/green] unique ({unique_url_count} URLs) ({rate:.1f} events/s)"
             else:
-                final_desc = f"[green]✓ Completed - {event_count} events ({rate:.1f} events/s)"
+                if args.bulk:
+                    final_desc = f"[green]✓ Completed - {event_count} events streamed, [green]{unique_count}[/green] unique ({rate:.1f} events/s)"
+                elif args.pages > 1:
+                    final_desc = f"[green]✓ Completed - {event_count} events streamed, [green]{unique_count}[/green] unique from {args.pages} pages ({rate:.1f} events/s)"
+                else:
+                    final_desc = f"[green]✓ Completed - {event_count} events, [green]{unique_count}[/green] unique ({rate:.1f} events/s)"
             progress.update(task, description=final_desc)
     
     return results_list, interrupted

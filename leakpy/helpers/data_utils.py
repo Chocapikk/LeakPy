@@ -69,9 +69,23 @@ def normalize_fields(fields):
 # ============================================================================
 
 def process_value_for_counting(value, counter_dict):
-    """Process a value (list or single) and increment counts."""
-    for item in (value if isinstance(value, list) else [value]):
-        if item is not None and (value_str := str(item)):
+    """Process a value (list or single) and increment counts.
+    
+    For lists, each unique value is counted once per event (not per occurrence).
+    This ensures percentages don't exceed 100% when a field can have multiple values.
+    """
+    if isinstance(value, list):
+        # For lists, count each unique value once (not per occurrence)
+        # This way percentages are based on number of events, not occurrences
+        unique_values = set()
+        for item in value:
+            if item is not None and (value_str := str(item)):
+                unique_values.add(value_str)
+        for value_str in unique_values:
+            counter_dict[value_str] = counter_dict.get(value_str, 0) + 1
+    else:
+        # For single values, count normally
+        if value is not None and (value_str := str(value)):
             counter_dict[value_str] = counter_dict.get(value_str, 0) + 1
 
 

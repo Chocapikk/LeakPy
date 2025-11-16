@@ -63,9 +63,11 @@ def _print_banner(version):
     console.print("Chocapikk", style="bold rgb(0,191,255)", end="")
     console.print(" | ", style="rgb(255,165,0)", end="")
     console.print("Non-official", style="bold rgb(135,206,250)", end="")
+    console.print(" (but don't tell my boss)", style="dim rgb(135,206,250)", end="")
     console.print(" ", style="", end="")
     console.print("LeakIX", style="bold rgb(50,205,50)", end="")
     console.print(" API client", style="rgb(255,165,0)")
+    console.print()  # Add extra space below banner
     # Flush stderr before stdout output
     sys.stderr.flush()
 

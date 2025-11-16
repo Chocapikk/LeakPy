@@ -5,6 +5,22 @@ All notable changes to LeakPy will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.6] - 2025-11-16
+
+### Added
+- Custom LeakIX dark theme for documentation with Fira Code font support
+- Event deduplication in search results display
+- Unique event count tracking in progress bar
+
+### Changed
+- Improved statistics counting for list fields (more accurate percentages)
+- Enhanced color scheme in CLI tables to match LeakIX branding
+- Improved multi-column layout for plugins and fields listing
+- Better display of long field values (automatic wrapping)
+
+### Fixed
+- Fixed percentage calculations in statistics for list fields
+
 ## [2.2.5] - 2025-11-16
 
 ### Fixed

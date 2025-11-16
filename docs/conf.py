@@ -43,6 +43,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'README.md']
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
+# Custom CSS to override theme defaults with LeakIX colors
+html_css_files = ['custom.css']
+
 # Autodoc settings
 autodoc_member_order = 'bysource'
 autodoc_default_options = {
