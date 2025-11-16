@@ -15,6 +15,10 @@ Global Options
 
    Suppress all output (useful for scripting)
 
+.. option:: --raw
+
+   Output raw JSON instead of formatted tables (useful for scripting/piping)
+
 Commands
 --------
 
@@ -61,6 +65,7 @@ Examples:
 
    $ leakpy search -q '+country:"France"' -p 5
    $ leakpy search -q 'plugin:TraccarPlugin' -b -o results.txt
+   $ leakpy --raw search -q '+country:"France"' -p 5
 
 Lookup
 ~~~~~~
@@ -90,6 +95,7 @@ Examples:
    $ leakpy lookup host 157.90.211.37
    $ leakpy lookup domain leakix.net
    $ leakpy lookup subdomains leakix.net
+   $ leakpy --raw lookup host 157.90.211.37
 
 List
 ~~~~
@@ -104,6 +110,7 @@ Examples:
 
    $ leakpy list plugins
    $ leakpy list fields
+   $ leakpy --raw list plugins
 
 Config & Cache
 ~~~~~~~~~~~~~~

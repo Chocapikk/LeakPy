@@ -61,6 +61,11 @@ Quick examples:
 # Search
 $ leakpy search -q '+country:"France"' -p 5
 
+# Raw JSON output (for scripting/piping)
+$ leakpy --raw search -q '+country:"France"' -p 5
+$ leakpy --raw lookup host 157.90.211.37
+$ leakpy --raw list plugins
+
 # Lookup host details
 $ leakpy lookup host 157.90.211.37
 

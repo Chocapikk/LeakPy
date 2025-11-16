@@ -779,8 +779,8 @@ class LeakIX:
             >>> for event in events:
             ...     print(event.ip)  # Events streamed and written to file simultaneously
             
-            >>> # Stream to stdout (for piping)
-            >>> client.search(scope="leak", query='+country:"France"', pages=2, output=sys.stdout)
+            >>> # Stream to stdout (for piping) - need to consume generator
+            >>> list(client.search(scope="leak", query='+country:"France"', pages=2, output=sys.stdout))
         """
         plugins_list = self.get_plugins()
         given_plugins = [item.strip() for item in plugin.split(",") if item.strip()]

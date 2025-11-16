@@ -27,6 +27,9 @@ CLI:
    $ leakpy search -q '+country:"France"' -p 5
    $ leakpy lookup host 157.90.211.37
 
+   # Raw JSON output (for scripting/piping)
+   $ leakpy --raw search -q '+country:"France"' -p 5
+
    # Example output (for search):
    # http://192.168.1.1:80
    # https://10.0.0.1:443

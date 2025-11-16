@@ -10,6 +10,11 @@ CLI Examples
    $ leakpy search -q '+country:"France"' -p 5
    $ leakpy search -q 'plugin:TraccarPlugin' -b -o results.txt
 
+   # Raw JSON output (for scripting/piping)
+   $ leakpy --raw search -q '+country:"France"' -p 5
+   $ leakpy --raw lookup host 157.90.211.37
+   $ leakpy --raw list plugins
+
    # Lookup
    $ leakpy lookup host 157.90.211.37
    $ leakpy lookup domain leakix.net
